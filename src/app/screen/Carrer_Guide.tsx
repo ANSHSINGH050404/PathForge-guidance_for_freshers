@@ -4,7 +4,7 @@ import { CarrerGuideResponse } from "../../../types";
 import axios from "axios";
 import { motion } from "framer-motion";
 import { Sparkles, X, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import LoginPromptModal from "@/components/LoginPromptModal";
 
 const utils_services = "/api/career";
 
@@ -23,6 +24,23 @@ const CarrerGuid = () => {
   const [currentSkill, setCurrentSkill] = useState("");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<CarrerGuideResponse | null>(null);
+
+  // Free trial state
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [usageCount, setUsageCount] = useState(0);
+  const FREE_TRIAL_LIMIT = 2; // Limit from auth-middleware
+
+  useEffect(() => {
+    // Check auth
+    const token =
+      localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+    setIsAuthenticated(!!token);
+
+    // Check usage
+    const count = parseInt(localStorage.getItem("careerUsageCount") || "0", 10);
+    setUsageCount(count);
+  }, []);
 
   const addSkill = () => {
     if (currentSkill.trim() && !skills.includes(currentSkill)) {

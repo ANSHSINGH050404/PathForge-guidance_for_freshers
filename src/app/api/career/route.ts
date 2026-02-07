@@ -1,8 +1,8 @@
-// app/api/career/route.ts
 import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 import { careerRequestSchema, validateRequest } from "@/lib/validations";
 import { requireAuth, rateLimit } from "@/lib/middleware";
+import { requireAuthOrFreeTrial } from "@/lib/auth-middleware";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_API_KEY!,
@@ -13,11 +13,11 @@ const MAX_REQUESTS_PER_MINUTE = 10;
 
 export async function POST(req: NextRequest) {
   try {
-    // Authentication check (optional - uncomment to require auth)
-    // const authResult = await requireAuth(req);
-    // if (authResult instanceof Response) {
-    //   return authResult;
-    // }
+    // Check Authentication / Free Trial
+    const authCheck = requireAuthOrFreeTrial(req, "career");
+    if (authCheck) {
+      return authCheck;
+    }
 
     // Get client IP for rate limiting
     const clientIp =

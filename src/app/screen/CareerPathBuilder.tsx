@@ -1,8 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, Check, Sparkles, ArrowLeft } from "lucide-react";
+import {
+  ChevronRight,
+  Check,
+  Sparkles,
+  ArrowLeft,
+  Lock,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import RoadmapDisplay from "@/components/RoadmapDisplay";
 import axios from "axios";
@@ -134,6 +141,35 @@ export default function CareerPathBuilder() {
   const [selections, setSelections] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [roadmap, setRoadmap] = useState<any>(null);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [usageCount, setUsageCount] = useState(0);
+
+  const FREE_TRIAL_LIMIT = 1; // Allow 1 free roadmap generation
+
+  // Check authentication and usage on mount
+  useEffect(() => {
+    // Check if user is logged in (you can replace this with your actual auth check)
+    const checkAuth = () => {
+      // Example: Check for auth token or session
+      const token =
+        localStorage.getItem("authToken") ||
+        sessionStorage.getItem("authToken");
+      setIsAuthenticated(!!token);
+    };
+
+    // Get usage count from localStorage
+    const getUsageCount = () => {
+      const count = parseInt(
+        localStorage.getItem("careerPathUsageCount") || "0",
+        10,
+      );
+      setUsageCount(count);
+    };
+
+    checkAuth();
+    getUsageCount();
+  }, []);
 
   const currentPathOptions = selectedPath
     ? techStackOptions[selectedPath]
@@ -165,6 +201,13 @@ export default function CareerPathBuilder() {
   const generateRoadmap = async (finalSelections: Record<string, string>) => {
     setLoading(true);
     try {
+      // Check if user has exceeded free trial and is not authenticated
+      if (!isAuthenticated && usageCount >= FREE_TRIAL_LIMIT) {
+        setLoading(false);
+        setShowLoginPrompt(true);
+        return;
+      }
+
       const careerPathLabel =
         careerPaths.find((p) => p.id === selectedPath)?.label || "";
 
@@ -196,6 +239,13 @@ export default function CareerPathBuilder() {
       console.log("Response keys:", Object.keys(data));
       setRoadmap(data);
       console.log("Roadmap state set successfully");
+
+      // Increment usage count if not authenticated
+      if (!isAuthenticated) {
+        const newCount = usageCount + 1;
+        setUsageCount(newCount);
+        localStorage.setItem("careerPathUsageCount", newCount.toString());
+      }
     } catch (error: any) {
       console.error("Error generating roadmap:", error);
       console.error("Error response:", error.response?.data);
@@ -248,6 +298,90 @@ export default function CareerPathBuilder() {
         <div className="absolute bottom-1/3 right-1/3 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
       </div>
 
+      {/* Login Prompt Modal */}
+      <AnimatePresence>
+        {showLoginPrompt && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            onClick={() => setShowLoginPrompt(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="glass-card p-8 max-w-md w-full relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close button */}
+              <button
+                onClick={() => setShowLoginPrompt(false)}
+                className="absolute top-4 right-4 text-neutral-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Icon */}
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mx-auto mb-6">
+                <Lock className="w-8 h-8 text-white" />
+              </div>
+
+              {/* Content */}
+              <h3 className="text-2xl font-bold text-white text-center mb-3">
+                Free Trial Exhausted
+              </h3>
+              <p className="text-neutral-400 text-center mb-6">
+                You've used your free roadmap generation! Sign in to unlock
+                unlimited access to personalized career roadmaps and more
+                features.
+              </p>
+
+              {/* Benefits */}
+              <div className="space-y-3 mb-6">
+                <div className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-neutral-300">
+                    Unlimited roadmap generations
+                  </span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-neutral-300">
+                    Save and track your progress
+                  </span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-neutral-300">
+                    Access to premium resources
+                  </span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-col gap-3">
+                <Button
+                  onClick={() => (window.location.href = "/login")}
+                  className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold"
+                >
+                  Sign In / Sign Up
+                </Button>
+                <Button
+                  onClick={() => setShowLoginPrompt(false)}
+                  variant="ghost"
+                  className="w-full text-neutral-400 hover:text-white"
+                >
+                  Maybe Later
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="container-custom relative z-10">
         {/* Header */}
         <motion.div
@@ -262,6 +396,31 @@ export default function CareerPathBuilder() {
               Interactive Path Builder
             </span>
           </div>
+
+          {/* Free Trial Indicator */}
+          {!isAuthenticated && (
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 backdrop-blur-sm mb-4">
+              {usageCount < FREE_TRIAL_LIMIT ? (
+                <>
+                  <Sparkles className="w-4 h-4 text-blue-400" />
+                  <span className="text-sm font-medium text-blue-400">
+                    {FREE_TRIAL_LIMIT - usageCount} free{" "}
+                    {FREE_TRIAL_LIMIT - usageCount === 1
+                      ? "generation"
+                      : "generations"}{" "}
+                    remaining
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-4 h-4 text-orange-400" />
+                  <span className="text-sm font-medium text-orange-400">
+                    Free trial used • Sign in for unlimited access
+                  </span>
+                </>
+              )}
+            </div>
+          )}
 
           <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6">
             Build Your

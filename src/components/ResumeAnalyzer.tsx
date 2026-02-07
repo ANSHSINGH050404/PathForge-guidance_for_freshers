@@ -1,12 +1,22 @@
 "use client";
 
-import { useState, useRef, Suspense, lazy } from "react";
+import { useState, useRef, Suspense, lazy, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, Loader2, AlertCircle, FileText, CheckCircle2, X } from "lucide-react";
+import {
+  Upload,
+  Loader2,
+  AlertCircle,
+  FileText,
+  CheckCircle2,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import LoginPromptModal from "@/components/LoginPromptModal";
 
 // Lazy load ResumeAnalysisModal
-const ResumeAnalysisModal = lazy(() => import("@/components/ResumeAnalysisModal"));
+const ResumeAnalysisModal = lazy(
+  () => import("@/components/ResumeAnalysisModal"),
+);
 
 interface ScoreBreakdown {
   formatting: { score: number; feedback: string };
@@ -34,9 +44,31 @@ export default function ResumeAnalyzer() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(
+    null,
+  );
   const [showModal, setShowModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Free trial state
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [usageCount, setUsageCount] = useState(0);
+  const FREE_TRIAL_LIMIT = 1;
+
+  useEffect(() => {
+    // Check auth
+    const token =
+      localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+    setIsAuthenticated(!!token);
+
+    // Check usage
+    const count = parseInt(
+      localStorage.getItem("resumeAnalyzerUsageCount") || "0",
+      10,
+    );
+    setUsageCount(count);
+  }, []);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -52,13 +84,19 @@ export default function ResumeAnalyzer() {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFile(e.dataTransfer.files[0]);
     }
   };
 
   const handleFile = async (file: File) => {
+    // Check free trial limit
+    if (!isAuthenticated && usageCount >= FREE_TRIAL_LIMIT) {
+      setShowLoginPrompt(true);
+      return;
+    }
+
     // Validate file type
     if (file.type !== "application/pdf") {
       setUploadError("Please upload a PDF file only");
@@ -84,20 +122,39 @@ export default function ResumeAnalyzer() {
 
       const response = await fetch("/api/resume-analyzer", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-resumeAnalyzer-usage": usageCount.toString(),
+        },
         body: JSON.stringify({ pdfBase64: base64 }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
+        // Check if error is due to free trial limit (just in case frontend check was bypassed or stale)
+        if (
+          response.status === 403 &&
+          errorData.error === "Free trial limit exceeded"
+        ) {
+          setShowLoginPrompt(true);
+          return;
+        }
         throw new Error(errorData.error || "Failed to analyze resume");
       }
 
       const data: AnalysisResult = await response.json();
       setAnalysisResult(data);
       setShowModal(true);
+
+      // Increment usage count if not authenticated
+      if (!isAuthenticated) {
+        const newCount = usageCount + 1;
+        setUsageCount(newCount);
+        localStorage.setItem("resumeAnalyzerUsageCount", newCount.toString());
+      }
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to analyze resume";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to analyze resume";
       setUploadError(errorMessage);
     } finally {
       setIsUploading(false);
@@ -117,6 +174,12 @@ export default function ResumeAnalyzer() {
 
   return (
     <section id="analyzer" className="py-24 md:py-32">
+      <LoginPromptModal
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
+        title="Resume Analysis Limit Reached"
+        description="You've used your free resume analysis! Sign in to unlock unlimited ATS checks and detailed feedback."
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <motion.div
@@ -126,13 +189,16 @@ export default function ResumeAnalyzer() {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <h2 className="font-mono text-sm text-neutral-500 mb-4">Resume Analysis</h2>
+          <h2 className="font-mono text-sm text-neutral-500 mb-4">
+            Resume Analysis
+          </h2>
           <h3 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6">
             Get Your ATS Score
           </h3>
           <p className="text-lg text-neutral-400 max-w-2xl mx-auto">
-            Upload your resume and get instant AI-powered feedback on how well it performs 
-            with Applicant Tracking Systems used by top tech companies.
+            Upload your resume and get instant AI-powered feedback on how well
+            it performs with Applicant Tracking Systems used by top tech
+            companies.
           </p>
         </motion.div>
 
@@ -166,7 +232,9 @@ export default function ResumeAnalyzer() {
             {isUploading ? (
               <div className="flex flex-col items-center gap-4">
                 <Loader2 className="w-12 h-12 text-neutral-400 animate-spin" />
-                <p className="text-neutral-400 font-mono">Analyzing your resume...</p>
+                <p className="text-neutral-400 font-mono">
+                  Analyzing your resume...
+                </p>
               </div>
             ) : (
               <>
@@ -223,7 +291,8 @@ export default function ResumeAnalyzer() {
             {
               icon: FileText,
               title: "ATS Compatibility",
-              description: "Check if your resume passes automated screening systems",
+              description:
+                "Check if your resume passes automated screening systems",
             },
             {
               icon: CheckCircle2,

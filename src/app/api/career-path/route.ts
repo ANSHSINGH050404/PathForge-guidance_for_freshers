@@ -3,6 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 import { validateRequest } from "@/lib/validations";
 import { careerPathBuilderSchema } from "@/lib/validations-career-path";
 import { rateLimit } from "@/lib/middleware";
+import { requireAuthOrFreeTrial } from "@/lib/auth-middleware";
 
 // Initialize the Google GenAI client
 // Ensure GOOGLE_API_KEY is set in your .env.local file
@@ -13,7 +14,15 @@ const genAI = new GoogleGenAI({
 export async function POST(req: NextRequest) {
   try {
     // ------------------------------------------------------------------
-    // 1. Rate Limiting (5 requests per minute per IP)
+    // 1. Check Authentication / Free Trial
+    // ------------------------------------------------------------------
+    const authCheck = requireAuthOrFreeTrial(req, "careerPath");
+    if (authCheck) {
+      return authCheck;
+    }
+
+    // ------------------------------------------------------------------
+    // 2. Rate Limiting (5 requests per minute per IP)
     // ------------------------------------------------------------------
     const clientIp =
       req.headers.get("x-forwarded-for")?.split(",")[0] ||
@@ -36,7 +45,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ------------------------------------------------------------------
-    // 2. Validate Request Body
+    // 3. Validate Request Body
     // ------------------------------------------------------------------
     const body = await req.json();
     const validation = await validateRequest(careerPathBuilderSchema, body);
@@ -48,7 +57,7 @@ export async function POST(req: NextRequest) {
     const { careerPath, techStack } = validation.data;
 
     // ------------------------------------------------------------------
-    // 3. Construct the Prompt
+    // 4. Construct the Prompt
     // ------------------------------------------------------------------
     const techStackDescription = Object.entries(techStack)
       .map(([category, tech]) => `${category}: ${tech}`)
@@ -75,7 +84,7 @@ export async function POST(req: NextRequest) {
     IMPORTANT: You must return PURE JSON. Do not include markdown formatting (like \`\`\`json).`;
 
     // ------------------------------------------------------------------
-    // 4. Call Google Gemini API
+    // 5. Call Google Gemini API
     // ------------------------------------------------------------------
     // using the 'gemini-1.5-flash' model for speed and cost-effectiveness
     // Note: 'gemini-2.5-flash' is not yet standard in all regions/SDKs.
@@ -101,7 +110,7 @@ export async function POST(req: NextRequest) {
     });
 
     // ------------------------------------------------------------------
-    // 5. Process and Return Response
+    // 6. Process and Return Response
     // ------------------------------------------------------------------
     // Access the generated text from the candidates array
     if (!result.candidates || result.candidates.length === 0) {
