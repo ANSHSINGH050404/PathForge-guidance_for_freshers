@@ -1,10 +1,10 @@
-'use client'
+"use client";
 
-import { CarrerGuideResponse } from '../../../types'
-import axios from 'axios'
-import { motion } from 'framer-motion'
-import { Sparkle, X, Rocket } from 'lucide-react'
-import { useState } from 'react'
+import { CarrerGuideResponse } from "../../../types";
+import axios from "axios";
+import { motion } from "framer-motion";
+import { Sparkles, X, Loader2 } from "lucide-react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,241 +12,258 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-// import {utils_services} from '@/context/AppContext'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
-const utils_services = 'http://localhost:3000/api/career'
+const utils_services = "/api/career";
 
 const CarrerGuid = () => {
-  const [open, setOpen] = useState(false)
-  const [skills, setSkills] = useState<string[]>([])
-  const [currentSkill, setCurrentSkill] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [response, setResponse] = useState<CarrerGuideResponse | null>(null)
+  const [open, setOpen] = useState(false);
+  const [skills, setSkills] = useState<string[]>([]);
+  const [currentSkill, setCurrentSkill] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [response, setResponse] = useState<CarrerGuideResponse | null>(null);
 
   const addSkill = () => {
     if (currentSkill.trim() && !skills.includes(currentSkill)) {
-      setSkills((prevSkills) => [...prevSkills, currentSkill.trim()])
-      setCurrentSkill('')
+      setSkills((prevSkills) => [...prevSkills, currentSkill.trim()]);
+      setCurrentSkill("");
     }
-  }
+  };
 
   const removeSkill = (skillToRemove: string) => {
     setSkills((prevSkills) =>
-      prevSkills.filter((skill) => skill !== skillToRemove)
-    )
-  }
+      prevSkills.filter((skill) => skill !== skillToRemove),
+    );
+  };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      addSkill()
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addSkill();
     }
-  }
+  };
 
   const CarrerGuideResponse = async () => {
     if (skills.length === 0) {
-      alert('Please enter some skills')
-      return
+      alert("Please enter at least one skill");
+      return;
     }
-    setLoading(true)
+
+    if (skills.length > 20) {
+      alert("Maximum 20 skills allowed");
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const { data } = await axios.post(`${utils_services}`, {
-        skills: skills.join(', '),
-      })
+        skills: skills,
+      });
 
-      setResponse(data)
-    } catch (error: any) {
-      alert(
-        'Error generating career guidance: ' +
-          (error.response?.data?.error || error.message)
-      )
+      setResponse(data);
+    } catch (error: unknown) {
+      const axiosError = error as {
+        response?: { data?: { error?: string }; status?: number };
+        message?: string;
+      };
+
+      let errorMessage = "Unknown error occurred";
+
+      if (axiosError.response?.status === 429) {
+        errorMessage = "Too many requests. Please wait a moment and try again.";
+      } else if (axiosError.response?.data?.error) {
+        errorMessage = axiosError.response.data.error;
+      } else if (axiosError.message) {
+        errorMessage = axiosError.message;
+      }
+
+      alert("Error generating career guidance: " + errorMessage);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const resetDialog = () => {
-    setSkills([])
-    setCurrentSkill('')
-    setResponse(null)
-    setOpen(false)
-  }
+    setSkills([]);
+    setCurrentSkill("");
+    setResponse(null);
+    setOpen(false);
+  };
 
   return (
-    <>
-      <style jsx global>{`
-        @keyframes gradient {
-          0%, 100% { 
-            background-position: 0% 50%; 
-          }
-          50% { 
-            background-position: 100% 50%; 
-          }
-        }
-        
-        .animate-gradient {
-          animation: gradient 4s ease infinite;
-        }
+    <section id="roadmap" className="relative section-padding overflow-hidden">
+      {/* Background Elements */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+      </div>
 
-        /* Grid background pattern */
-        .grid-pattern {
-          background-image: 
-            linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
-          background-size: 50px 50px;
-        }
-      `}</style>
-
-      <section className="relative min-h-screen overflow-hidden bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950">
-        {/* Dynamic Background */}
-        <div className="absolute inset-0 pointer-events-none">
-          {/* Energetic Gradient Orbs */}
-          <motion.div 
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.3, 0.5, 0.3],
-            }}
-            transition={{
-              duration: 8,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-            className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-gradient-to-br from-blue-500/30 to-cyan-500/30 rounded-full blur-[120px]"
-          />
-          <motion.div 
-            animate={{
-              scale: [1.2, 1, 1.2],
-              opacity: [0.4, 0.6, 0.4],
-            }}
-            transition={{
-              duration: 10,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-            className="absolute -bottom-40 -right-40 w-[700px] h-[700px] bg-gradient-to-br from-purple-500/30 to-pink-500/30 rounded-full blur-[120px]"
-          />
-          <motion.div 
-            animate={{
-              scale: [1, 1.3, 1],
-              opacity: [0.2, 0.4, 0.2],
-            }}
-            transition={{
-              duration: 12,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full blur-[100px]"
-          />
-          
-          {/* Grid Pattern */}
-          <div className="absolute inset-0 grid-pattern opacity-20" />
-        </div>
-
-        <div className="relative z-10 max-w-7xl mx-auto px-4 py-16">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border bg-blue-50 mb-4">
-              <Sparkle size={16} className="text-blue-600" />
-              <span className="text-sm font-medium">
-                AI-Powered Career Guidance
-              </span>
-            </div>
+      <div className="container-custom relative z-10">
+        {/* Section Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-16"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm mb-6">
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            <span className="text-sm font-medium text-neutral-300">
+              Personalized Career Roadmap
+            </span>
           </div>
 
-          <div className="p-4">
+          <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-4">
+            Your Path to Success
+          </h2>
+
+          <p className="text-lg text-neutral-400 max-w-2xl mx-auto">
+            Get AI-powered career guidance tailored to your unique skill set
+          </p>
+        </motion.div>
+
+        {/* CTA Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="max-w-2xl mx-auto"
+        >
+          <div className="glass-card p-8 text-center">
+            <h3 className="text-2xl font-bold text-white mb-4">
+              Ready to forge your path?
+            </h3>
+            <p className="text-neutral-400 mb-6">
+              Share your skills and get personalized career recommendations
+            </p>
+
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button className="flex gap-2">
-                  <Sparkle size={16} className="text-blue-400" />
+                <Button className="btn-primary px-8 py-6 text-base font-medium rounded-full shadow-lg shadow-purple-500/20">
+                  <Sparkles className="w-5 h-5 mr-2" />
                   Get Career Guidance
                 </Button>
               </DialogTrigger>
 
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-black/95 border-white/10 backdrop-blur-xl">
                 {!response ? (
                   <>
                     <DialogHeader>
-                      <DialogTitle>Tell us About Your Skills</DialogTitle>
-                      <DialogDescription>
-                        Add technical skills to get career guidance
+                      <DialogTitle className="text-2xl font-bold text-white">
+                        Tell us About Your Skills
+                      </DialogTitle>
+                      <DialogDescription className="text-neutral-400">
+                        Add your technical skills to receive personalized career
+                        guidance
                       </DialogDescription>
                     </DialogHeader>
 
-                    <div className="flex flex-col gap-6 py-4">
+                    <div className="flex flex-col gap-6 py-6">
                       {/* Input Section */}
-                      <div className="flex flex-col gap-2">
-                        <label className="text-sm font-medium">Skills</label>
+                      <div className="flex flex-col gap-3">
+                        <label className="text-sm font-medium text-white">
+                          Your Skills
+                        </label>
                         <div className="flex gap-2">
                           <input
                             type="text"
                             value={currentSkill}
                             onChange={(e) => setCurrentSkill(e.target.value)}
                             onKeyPress={handleKeyPress}
-                            placeholder="e.g. React, Python, Figma"
-                            className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                            placeholder="e.g. React, Python, TypeScript..."
+                            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder:text-neutral-500"
                           />
-                          <Button onClick={addSkill} type="button">
+                          <Button
+                            onClick={addSkill}
+                            type="button"
+                            className="btn-secondary px-6"
+                          >
                             Add
                           </Button>
                         </div>
+                        <p className="text-xs text-neutral-500">
+                          Press Enter to add • Maximum 20 skills
+                        </p>
                       </div>
 
-                      {/* Skills Display Section (The "Tags") */}
-                      <div className="flex flex-wrap gap-2">
-                        {skills.map((skill) => (
-                          <span
-                            key={skill}
-                            className="flex items-center gap-1 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium"
-                          >
-                            {skill}
-                            <button
-                              onClick={() => removeSkill(skill)}
-                              className="hover:text-blue-900"
+                      {/* Skills Display */}
+                      {skills.length > 0 && (
+                        <div className="flex flex-wrap gap-2 p-4 bg-white/5 rounded-lg border border-white/10">
+                          {skills.map((skill) => (
+                            <span
+                              key={skill}
+                              className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 text-blue-300 px-3 py-1.5 rounded-full text-sm font-medium group hover:bg-blue-500/20 transition-colors"
                             >
-                              <X size={14} />
-                            </button>
-                          </span>
-                        ))}
-                      </div>
+                              {skill}
+                              <button
+                                onClick={() => removeSkill(skill)}
+                                className="hover:text-blue-100 transition-colors"
+                              >
+                                <X size={14} />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
 
                       <Button
                         disabled={skills.length === 0 || loading}
-                        className="w-full bg-green-600 hover:bg-green-700 mt-4"
+                        className="btn-primary w-full py-6 text-base font-medium rounded-lg mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={CarrerGuideResponse}
                       >
-                        {loading ? 'Generating...' : 'Generate Guidance'}
+                        {loading ? (
+                          <>
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                            Generating Your Roadmap...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-5 h-5 mr-2" />
+                            Generate Career Roadmap
+                          </>
+                        )}
                       </Button>
                     </div>
                   </>
                 ) : (
                   <div className="py-6">
-                    <DialogHeader>
-                      <DialogTitle>Your Career Path</DialogTitle>
-                      <DialogDescription>{response.summary}</DialogDescription>
+                    <DialogHeader className="mb-6">
+                      <DialogTitle className="text-2xl font-bold text-white">
+                        Your Personalized Career Path
+                      </DialogTitle>
+                      <DialogDescription className="text-neutral-400 text-base">
+                        {response.summary}
+                      </DialogDescription>
                     </DialogHeader>
 
-                    <div className="mt-6 space-y-6">
+                    <div className="space-y-8">
                       {/* Job Options */}
                       <div>
-                        <h4 className="font-semibold text-lg mb-3 text-blue-700">
+                        <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                          <span className="w-2 h-2 bg-blue-500 rounded-full" />
                           Recommended Job Roles
                         </h4>
                         <div className="space-y-3">
                           {response.jobOptions.map((job, index) => (
                             <div
                               key={index}
-                              className="border rounded-lg p-4 bg-gray-50"
+                              className="glass-card p-5 hover:bg-white/10 transition-colors"
                             >
-                              <h5 className="font-medium text-gray-900">
+                              <h5 className="font-semibold text-white text-lg mb-2">
                                 {job.title}
                               </h5>
-                              <p className="text-sm text-gray-600 mt-1">
+                              <p className="text-sm text-neutral-400 mb-3">
                                 {job.responsibilities}
                               </p>
-                              <p className="text-xs text-blue-600 mt-2">
-                                Why fit: {job.why}
+                              <p className="text-sm text-blue-400">
+                                <span className="font-medium">
+                                  Why this fits:
+                                </span>{" "}
+                                {job.why}
                               </p>
                             </div>
                           ))}
@@ -255,29 +272,33 @@ const CarrerGuid = () => {
 
                       {/* Skills to Learn */}
                       <div>
-                        <h4 className="font-semibold text-lg mb-3 text-green-700">
-                          Skills to Learn
+                        <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                          <span className="w-2 h-2 bg-purple-500 rounded-full" />
+                          Skills to Develop
                         </h4>
                         <div className="space-y-4">
                           {response.skillsToLearn.map((category, index) => (
-                            <div key={index} className="border rounded-lg p-4">
-                              <h5 className="font-medium text-gray-900 mb-2">
+                            <div key={index} className="glass-card p-5">
+                              <h5 className="font-semibold text-white mb-3">
                                 {category.category}
                               </h5>
-                              <div className="space-y-2">
+                              <div className="space-y-3">
                                 {category.skills.map((skill, skillIndex) => (
                                   <div
                                     key={skillIndex}
-                                    className="bg-gray-50 rounded p-2 text-sm"
+                                    className="bg-white/5 rounded-lg p-4 border border-white/5"
                                   >
-                                    <span className="font-medium text-blue-700">
+                                    <span className="font-medium text-purple-400 block mb-2">
                                       {skill.title}
                                     </span>
-                                    <p className="text-gray-600 mt-1">
+                                    <p className="text-sm text-neutral-400 mb-2">
                                       {skill.why}
                                     </p>
-                                    <p className="text-xs text-green-600 mt-1">
-                                      How: {skill.how}
+                                    <p className="text-xs text-neutral-500">
+                                      <span className="text-green-400 font-medium">
+                                        How:
+                                      </span>{" "}
+                                      {skill.how}
                                     </p>
                                   </div>
                                 ))}
@@ -289,40 +310,38 @@ const CarrerGuid = () => {
 
                       {/* Learning Approach */}
                       <div>
-                        <h4 className="font-semibold text-lg mb-3 text-purple-700">
-                          Learning Approach
+                        <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                          <span className="w-2 h-2 bg-green-500 rounded-full" />
+                          {response.learningApproach.title}
                         </h4>
-                        <div className="bg-purple-50 rounded-lg p-4">
-                          <p className="font-medium text-gray-900 mb-2">
-                            {response.learningApproach.title}
-                          </p>
-                          <ul className="space-y-1">
+                        <div className="glass-card p-5">
+                          <ul className="space-y-3">
                             {response.learningApproach.points.map(
                               (point, index) => (
                                 <li
                                   key={index}
-                                  className="text-sm text-gray-600 flex items-start"
+                                  className="text-sm text-neutral-300 flex items-start gap-3"
                                 >
-                                  <span className="mr-2">•</span>
-                                  {point}
+                                  <span className="text-green-400 mt-1">✓</span>
+                                  <span>{point}</span>
                                 </li>
-                              )
+                              ),
                             )}
                           </ul>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex gap-3 mt-6">
+                    <div className="flex gap-3 mt-8">
                       <Button
                         variant="outline"
-                        className="flex-1"
+                        className="flex-1 btn-secondary py-6"
                         onClick={() => setResponse(null)}
                       >
-                        Back to Skills
+                        Start Over
                       </Button>
                       <Button
-                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        className="flex-1 btn-primary py-6"
                         onClick={resetDialog}
                       >
                         Close
@@ -333,10 +352,10 @@ const CarrerGuid = () => {
               </DialogContent>
             </Dialog>
           </div>
-        </div>
-      </section>
-    </>
-  )
-}
+        </motion.div>
+      </div>
+    </section>
+  );
+};
 
-export default CarrerGuid
+export default CarrerGuid;

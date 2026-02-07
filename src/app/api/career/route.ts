@@ -1,31 +1,74 @@
 // app/api/career/route.ts
 import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
+import { careerRequestSchema, validateRequest } from "@/lib/validations";
+import { requireAuth, rateLimit } from "@/lib/middleware";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_API_KEY!,
 });
 
+const MODEL_NAME = "gemini-2.0-flash";
+const MAX_REQUESTS_PER_MINUTE = 10;
+
 export async function POST(req: NextRequest) {
   try {
-    const { skills } = await req.json();
+    // Authentication check (optional - uncomment to require auth)
+    // const authResult = await requireAuth(req);
+    // if (authResult instanceof Response) {
+    //   return authResult;
+    // }
 
-    if (!skills) {
+    // Get client IP for rate limiting
+    const clientIp =
+      req.headers.get("x-forwarded-for") ||
+      req.headers.get("x-real-ip") ||
+      "anonymous";
+
+    // Rate limiting
+    const rateLimitResult = rateLimit(
+      `career:${clientIp}`,
+      MAX_REQUESTS_PER_MINUTE,
+      60000,
+    );
+
+    if (!rateLimitResult.allowed) {
       return NextResponse.json(
-        { error: "No skills provided" },
-        { status: 400 }
+        {
+          error: "Too many requests. Please try again later.",
+          resetTime: new Date(rateLimitResult.resetTime).toISOString(),
+        },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": rateLimitResult.resetTime.toString(),
+          },
+        },
       );
     }
 
+    // Parse and validate request body
+    const body = await req.json();
+    const validation = await validateRequest(careerRequestSchema, body);
+
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+
+    const { skills } = validation.data;
+
+    // Sanitize skills (remove extra whitespace, deduplicate)
+    const sanitizedSkills = [...new Set(skills.map((s) => s.trim()))];
+
     const prompt: string = `
-Based on the following skills: ${skills}.
+Based on the following skills: ${sanitizedSkills.join(", ")}.
 Please act as a career advisor and generate a career path suggestion.
 Your entire response must be in a valid JSON format. Do not include any text or markdown
 formatting outside of the JSON structure.
 The JSON object should have the following structure:
 {
-"summary": "A brief, encouraging summary of the user's skill set and their general job
-title.",
+"summary": "A brief, encouraging summary of the user's skill set and their general job title.",
 "jobOptions": [
 {
 "title": "The name of the job role.",
@@ -35,8 +78,7 @@ title.",
 ],
 "skillsToLearn": [
 {
-"category": "A general category for skill improvement (e.g., 'Deepen Your Existing Stack
-Mastery', 'DevOps & Cloud').",
+"category": "A general category for skill improvement (e.g., 'Deepen Your Existing Stack Mastery', 'DevOps & Cloud').",
 "skills": [
 {
 "title": "The name of the skill to learn.",
@@ -54,14 +96,14 @@ Mastery', 'DevOps & Cloud').",
 `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: MODEL_NAME,
       contents: prompt,
     });
 
-    let jsonResponse: any;
+    let jsonResponse: unknown;
 
     try {
-      const rawText: any = response.text
+      const rawText = response.text
         ?.replace(/```json/g, "")
         .replace(/```/g, "")
         .trim();
@@ -71,23 +113,29 @@ Mastery', 'DevOps & Cloud').",
       }
 
       jsonResponse = JSON.parse(rawText);
-    } catch (error: any) {
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError);
       return NextResponse.json(
         {
-          message: "AI did not return valid JSON",
-          rawResponse: response.text,
+          error: "Failed to process AI response. Please try again.",
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
-    return NextResponse.json(jsonResponse);
-  } catch (error: any) {
+    return NextResponse.json(jsonResponse, {
+      headers: {
+        "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+        "X-RateLimit-Reset": rateLimitResult.resetTime.toString(),
+      },
+    });
+  } catch (error: unknown) {
+    console.error("Career API error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "An unknown error occurred";
     return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
+      { error: "Internal server error. Please try again later." },
+      { status: 500 },
     );
   }
 }
-
-

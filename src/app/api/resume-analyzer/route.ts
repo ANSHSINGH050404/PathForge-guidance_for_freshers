@@ -1,30 +1,62 @@
 // app/api/resume-analyzer/route.ts
 import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
+import { resumeAnalyzerSchema, validateRequest } from "@/lib/validations";
+import { requireAuth, rateLimit } from "@/lib/middleware";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_API_KEY!,
 });
 
+const MODEL_NAME = "gemini-2.5-flash";
+const MAX_REQUESTS_PER_MINUTE = 5; // Lower limit for resume analysis (more resource intensive)
+
 export async function POST(req: NextRequest) {
   try {
+    // Authentication check (optional - uncomment to require auth)
+    // const authResult = await requireAuth(req);
+    // if (authResult instanceof Response) {
+    //   return authResult;
+    // }
+
+    // Get client IP for rate limiting
+    const clientIp =
+      req.headers.get("x-forwarded-for") ||
+      req.headers.get("x-real-ip") ||
+      "anonymous";
+
+    // Rate limiting
+    const rateLimitResult = rateLimit(
+      `resume:${clientIp}`,
+      MAX_REQUESTS_PER_MINUTE,
+      60000,
+    );
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        {
+          error: "Too many requests. Please try again later.",
+          resetTime: new Date(rateLimitResult.resetTime).toISOString(),
+        },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": rateLimitResult.resetTime.toString(),
+          },
+        },
+      );
+    }
+
+    // Parse and validate request body
     const body = await req.json();
+    const validation = await validateRequest(resumeAnalyzerSchema, body);
 
-    if (!body) {
-      return NextResponse.json(
-        { error: "Request body is required" },
-        { status: 400 }
-      );
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
-    const { pdfBase64 } = body;
-
-    if (!pdfBase64) {
-      return NextResponse.json(
-        { error: "Pdf document resume is Required!" },
-        { status: 400 }
-      );
-    }
+    const { pdfBase64 } = validation.data;
 
     const prompt = `
 You are an expert ATS (Applicant Tracking System) analyzer. Analyze the following resume
@@ -57,8 +89,7 @@ The JSON object should have the following structure:
 },
 "suggestions": [
 {
-"category": "Category name (e.g., 'Formatting', 'Content', 'Keywords',
-'Structure')",
+"category": "Category name (e.g., 'Formatting', 'Content', 'Keywords', 'Structure')",
 "issue": "Description of the issue found",
 "recommendation": "Specific actionable recommendation to fix it",
 "priority": "high/medium/low"
@@ -81,7 +112,7 @@ Focus on:
 `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: MODEL_NAME,
       contents: [
         {
           role: "user",
@@ -100,10 +131,10 @@ Focus on:
       ],
     });
 
-    let jsonResponse: any;
+    let jsonResponse: unknown;
 
     try {
-      const rawText: any = response.text
+      const rawText = response.text
         ?.replace(/```json/g, "")
         .replace(/```/g, "")
         .trim();
@@ -113,21 +144,29 @@ Focus on:
       }
 
       jsonResponse = JSON.parse(rawText);
-    } catch (error: any) {
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError);
       return NextResponse.json(
         {
-          message: "AI did not return valid JSON",
-          rawResponse: response.text,
+          error: "Failed to process AI response. Please try again.",
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
-    return NextResponse.json(jsonResponse);
-  } catch (error: any) {
+    return NextResponse.json(jsonResponse, {
+      headers: {
+        "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+        "X-RateLimit-Reset": rateLimitResult.resetTime.toString(),
+      },
+    });
+  } catch (error: unknown) {
+    console.error("Resume analyzer error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "An unknown error occurred";
     return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
+      { error: "Internal server error. Please try again later." },
+      { status: 500 },
     );
   }
 }

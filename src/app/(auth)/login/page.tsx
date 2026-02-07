@@ -1,18 +1,42 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { signIn } from "@/lib/auth-client";
+import { signIn, useSession } from "@/lib/auth-client";
+import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { data: session, isPending } = useSession();
   const [isLoading, setIsLoading] = useState<{ google: boolean; github: boolean }>({
     google: false,
     github: false,
   });
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (session?.user && !isPending) {
+      router.push("/");
+    }
+  }, [session, isPending, router]);
+
+  // Show loading state while checking session
+  if (isPending) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-white animate-spin" />
+      </div>
+    );
+  }
+
+  // Don't render login form if already authenticated
+  if (session?.user) {
+    return null;
+  }
 
   const handleSocialLogin = async (provider: "google" | "github") => {
     setIsLoading((prev) => ({ ...prev, [provider]: true }));
@@ -29,8 +53,9 @@ export default function LoginPage() {
         toast.success(`Signed in with ${provider}!`);
         router.push("/");
       }
-    } catch (error) {
-      toast.error(`An error occurred while signing in with ${provider}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+      toast.error(`An error occurred while signing in with ${provider}: ${errorMessage}`);
       console.error(error);
     } finally {
       setIsLoading((prev) => ({ ...prev, [provider]: false }));
@@ -38,9 +63,19 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
+    <main className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Back to Home Button */}
+      <Link 
+        href="/" 
+        className="absolute top-6 left-6 z-20 flex items-center gap-2 text-neutral-400 hover:text-white transition-colors"
+        aria-label="Go back to homepage"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        <span className="text-sm font-medium">Back to Home</span>
+      </Link>
+
       {/* Animated Grid Background */}
-      <div className="grid-background" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:50px_50px]" />
       
       {/* Radial gradient overlay */}
       <div className="fixed inset-0 bg-gradient-to-b from-black via-transparent to-black pointer-events-none" />
@@ -59,11 +94,11 @@ export default function LoginPage() {
           transition={{ delay: 0.2 }}
           className="text-center mb-8"
         >
-          <div className="terminal-text text-neutral-500 text-sm mb-4">
+          <div className="font-mono text-neutral-500 text-sm mb-4">
             <span className="text-neutral-700">~</span> npx sign-in@latest
           </div>
           
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight gradient-text mb-4">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent mb-4">
             Welcome
           </h1>
           <p className="text-neutral-400 text-lg">
@@ -76,19 +111,21 @@ export default function LoginPage() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3, duration: 0.4 }}
-          className="glow-card bg-neutral-950/50 backdrop-blur-sm border border-white/10 rounded-xl p-8"
+          className="bg-neutral-950/50 backdrop-blur-sm border border-white/10 rounded-xl p-8 shadow-[0_0_50px_-12px_rgba(59,130,246,0.25)]"
         >
           {/* Social Login Buttons */}
           <div className="space-y-3">
-            <button
+            <Button
               onClick={() => handleSocialLogin("google")}
               disabled={isLoading.google || isLoading.github}
-              className="social-btn w-full flex items-center justify-center gap-3 px-4 py-3 bg-transparent rounded-lg text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="outline"
+              className="w-full flex items-center justify-center gap-3 px-4 py-6 bg-transparent border-white/20 hover:bg-white/5 hover:border-white/30 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Sign in with Google"
             >
               {isLoading.google ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
               ) : (
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     fill="#EA4335"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -108,22 +145,24 @@ export default function LoginPage() {
                 </svg>
               )}
               <span>Continue with Google</span>
-            </button>
+            </Button>
 
-            <button
+            <Button
               onClick={() => handleSocialLogin("github")}
               disabled={isLoading.google || isLoading.github}
-              className="social-btn w-full flex items-center justify-center gap-3 px-4 py-3 bg-transparent rounded-lg text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="outline"
+              className="w-full flex items-center justify-center gap-3 px-4 py-6 bg-transparent border-white/20 hover:bg-white/5 hover:border-white/30 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Sign in with GitHub"
             >
               {isLoading.github ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
               ) : (
-                <svg className="w-5 h-5" fill="white" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="white" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
                 </svg>
               )}
               <span>Continue with GitHub</span>
-            </button>
+            </Button>
           </div>
 
           {/* Divider */}
@@ -148,26 +187,26 @@ export default function LoginPage() {
           transition={{ delay: 0.5 }}
           className="mt-8 flex items-center justify-center gap-6 text-neutral-600 text-sm"
         >
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center gap-2" aria-label="Secure authentication">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
             <span>Secure</span>
           </div>
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center gap-2" aria-label="Trusted platform">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
             <span>Trusted</span>
           </div>
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center gap-2" aria-label="Fast sign in">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
             <span>Fast</span>
           </div>
         </motion.div>
       </motion.div>
-    </div>
+    </main>
   );
 }
