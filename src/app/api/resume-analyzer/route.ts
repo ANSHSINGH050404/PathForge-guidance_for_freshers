@@ -8,7 +8,7 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_API_KEY!,
 });
 
-const MODEL_NAME = "gemini-2.5-flash";
+const MODEL_NAME = "gemini-1.5-flash";
 const MAX_REQUESTS_PER_MINUTE = 5; // Lower limit for resume analysis (more resource intensive)
 
 export async function POST(req: NextRequest) {
@@ -58,57 +58,48 @@ export async function POST(req: NextRequest) {
 
     const { pdfBase64 } = validation.data;
 
-    const prompt = `
-You are an expert ATS (Applicant Tracking System) analyzer. Analyze the following resume
-and provide:
-1. An ATS compatibility score (0-100)
-2. Detailed suggestions to improve the resume for better ATS performance
-Your entire response must be in valid JSON format. Do not include any text or markdown
-formatting outside of the JSON structure.
-The JSON object should have the following structure:
+    // Debug logging
+    console.log(`Analyzing resume. PDF Size: ${pdfBase64.length} bytes`);
 
+    const prompt = `
+You are an expert ATS (Applicant Tracking System) analyzer. Analyze the PDF resume attached to this request.
+First, extract the candidate's full name from the resume.
+
+If you cannot read the resume content, or if it appears to be empty/invalid, return a JSON with "atsScore": 0, "candidateName": null, and "summary": "Error: Could not read resume content."
+
+Your entire response must be in valid JSON format. Do not include any text or markdown formatting (like \`\`\`json) outside of the JSON structure.
+
+The JSON object should have the following structure:
 {
-"atsScore": 85,
-"scoreBreakdown": {
-"formatting": {
-"score": 90,
-"feedback": "Brief feedback on formatting"
-},
-"keywords": {
-"score": 80,
-"feedback": "Brief feedback on keyword usage"
-},
-"structure": {
-"score": 85,
-"feedback": "Brief feedback on resume structure"
-},
-"readability": {
-"score": 88,
-"feedback": "Brief feedback on readability"
+  "candidateName": "Extracted Name",
+  "atsScore": 85,
+  "scoreBreakdown": {
+    "formatting": { "score": 90, "feedback": "..." },
+    "keywords": { "score": 80, "feedback": "..." },
+    "structure": { "score": 85, "feedback": "..." },
+    "readability": { "score": 88, "feedback": "..." }
+  },
+  "suggestions": [
+    {
+      "category": "...",
+      "issue": "...",
+      "recommendation": "...",
+      "priority": "high"
+    }
+  ],
+  "strengths": ["..."],
+  "summary": "..."
 }
-},
-"suggestions": [
-{
-"category": "Category name (e.g., 'Formatting', 'Content', 'Keywords', 'Structure')",
-"issue": "Description of the issue found",
-"recommendation": "Specific actionable recommendation to fix it",
-"priority": "high/medium/low"
-}
-],
-"strengths": [
-"List of things the resume does well for ATS"
-],
-"summary": "A brief 2-3 sentence summary of the overall ATS performance"
-}
+
 Focus on:
 - File format and structure compatibility
 - Proper use of standard section headings
-- Keyword optimization
-- Formatting issues (tables, columns, graphics, special characters)
+- Keyword optimization for tech roles
+- Formatting issues (tables, columns, graphics)
 - Contact information placement
 - Date formatting
-- Use of action verbs and quantifiable achievements
-- Section organization and flow
+- Use of action verbs
+- Section organization
 `;
 
     const response = await ai.models.generateContent({
@@ -138,6 +129,8 @@ Focus on:
         ?.replace(/```json/g, "")
         .replace(/```/g, "")
         .trim();
+
+      console.log("AI Raw Response (truncated):", rawText?.substring(0, 200));
 
       if (!rawText) {
         throw new Error("AI did not return valid JSON");

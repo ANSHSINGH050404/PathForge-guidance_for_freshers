@@ -5,9 +5,9 @@ import { eq } from "drizzle-orm";
 
 // Free trial configuration
 export const FREE_TRIAL_LIMITS = {
-  careerPath: 1,
-  career: 2,
-  resumeAnalyzer: 1,
+  careerPath: 3,
+  career: 3,
+  resumeAnalyzer: 3,
 };
 
 export type EndpointType = keyof typeof FREE_TRIAL_LIMITS;
