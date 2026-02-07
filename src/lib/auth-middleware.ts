@@ -37,7 +37,7 @@ export function getGuestIdentifier(req: NextRequest): string {
   if (forwardedFor) {
     return forwardedFor.split(",")[0].trim();
   }
-  const ip = req.headers.get("x-real-ip") || req.ip || "unknown";
+  const ip = req.headers.get("x-real-ip") || (req as any).ip || "unknown";
   if (process.env.NODE_ENV === "development" && ip === "unknown") {
     return "127.0.0.1";
   }
