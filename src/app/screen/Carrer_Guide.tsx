@@ -29,7 +29,7 @@ const CarrerGuid = () => {
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [usageCount, setUsageCount] = useState(0);
-  const FREE_TRIAL_LIMIT = 2; // Limit from auth-middleware
+  const FREE_TRIAL_LIMIT = 3; // Limit from auth-middleware
 
   useEffect(() => {
     // Check auth via API

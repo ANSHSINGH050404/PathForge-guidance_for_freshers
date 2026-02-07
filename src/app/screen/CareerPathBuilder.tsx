@@ -145,7 +145,7 @@ export default function CareerPathBuilder() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [usageCount, setUsageCount] = useState(0);
 
-  const FREE_TRIAL_LIMIT = 1; // Allow 1 free roadmap generation
+  const FREE_TRIAL_LIMIT = 3; // Allow 3 free roadmap generations
 
   // Check authentication and usage on mount
   useEffect(() => {

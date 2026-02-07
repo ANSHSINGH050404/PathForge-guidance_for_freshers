@@ -54,7 +54,7 @@ export default function ResumeAnalyzer() {
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [usageCount, setUsageCount] = useState(0);
-  const FREE_TRIAL_LIMIT = 1;
+  const FREE_TRIAL_LIMIT = 3;
 
   useEffect(() => {
     // Check auth via API
