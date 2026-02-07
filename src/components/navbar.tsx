@@ -5,19 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { User, LogOut, Briefcase, Menu, X, Sparkles, ChevronDown } from "lucide-react";
-
+import { User, LogOut, Briefcase, Menu, X, Sparkles, ChevronDown, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSession, signOut } from "@/lib/auth-client";
+import { toast } from "react-hot-toast";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const isAuth = true;
-  const user = {
-    name: "Alex Johnson",
-    email: "alex@example.com",
-    avatar: "" 
-  };
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  
+  // Get real session data from Better-Auth
+  const { data: session, isPending } = useSession();
+  const isAuth = !!session?.user;
+  const user = session?.user;
 
   // Track scroll for navbar background
   useEffect(() => {
@@ -28,15 +29,31 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const logoutHandler = () => {
-    console.log("Logging out...");
+  const logoutHandler = async () => {
+    setIsLoggingOut(true);
+    try {
+      await signOut();
+      toast.success("Logged out successfully");
+      // Force a page refresh to clear any cached state
+      window.location.href = "/";
+    } catch (error) {
+      toast.error("Failed to logout");
+      console.error("Logout error:", error);
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   const navLinks = [
     { href: "/", label: "Home" },
-    { href: "/jobs", label: "About" },
- 
+    { href: "/jobs", label: "Jobs" },
   ];
+
+  // Get user initials for avatar fallback
+  const getUserInitials = () => {
+    if (!user?.name) return "U";
+    return user.name.charAt(0).toUpperCase();
+  };
 
   return (
     <motion.nav
@@ -45,7 +62,7 @@ const Navbar = () => {
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       className={`fixed w-full z-50 top-0 transition-all duration-300 ${
         scrolled 
-          ? "bg-gradient-to-br from-indigo-950/95 via-slate-900/95 to-purple-950/95 backdrop-blur-xl border-b border-white/10" 
+          ? "bg-black/80 backdrop-blur-xl border-b border-white/10" 
           : "bg-transparent"
       }`}
     >
@@ -86,11 +103,13 @@ const Navbar = () => {
 
           {/* Right Section */}
           <div className="flex items-center gap-2">
- 
-          
-
-            {/* Auth Section */}
-            {isAuth ? (
+            {/* Loading State */}
+            {isPending ? (
+              <div className="h-10 w-10 flex items-center justify-center">
+                <Loader2 className="h-5 w-5 text-white/50 animate-spin" />
+              </div>
+            ) : isAuth ? (
+              /* Authenticated User Menu */
               <Popover>
                 <PopoverTrigger asChild>
                   <Button 
@@ -98,10 +117,10 @@ const Navbar = () => {
                     className="relative h-10 pl-2 pr-3 rounded-full hover:bg-white/10 border border-white/10 transition-all duration-300 group"
                   >
                     <div className="flex items-center gap-2">
-                      <Avatar className="h-7 w-7 ring-2 ring-white/20 group-hover:ring-blue-500/50 transition-all">
-                        <AvatarImage src={user.avatar} alt={user.name} />
+                      <Avatar className="h-7 w-7 ring-2 ring-white/20 group-hover:ring-blue-500/50 transition-all" size="sm">
+                        <AvatarImage src={user?.image || ""} alt={user?.name || "User"} />
                         <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-xs">
-                          {user.name.charAt(0)}
+                          {getUserInitials()}
                         </AvatarFallback>
                       </Avatar>
                       <ChevronDown className="h-4 w-4 text-white/50 group-hover:text-white transition-colors" />
@@ -113,15 +132,15 @@ const Navbar = () => {
                     {/* User Info */}
                     <div className="p-4 border-b border-white/10">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10 ring-2 ring-white/20">
-                          <AvatarImage src={user.avatar} alt={user.name} />
+                        <Avatar className="h-10 w-10 ring-2 ring-white/20" size="lg">
+                          <AvatarImage src={user?.image || ""} alt={user?.name || "User"} />
                           <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white">
-                            {user.name.charAt(0)}
+                            {getUserInitials()}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="flex flex-col">
-                          <p className="text-sm font-semibold text-white">{user.name}</p>
-                          <p className="text-xs text-white/50">{user.email}</p>
+                        <div className="flex flex-col min-w-0">
+                          <p className="text-sm font-semibold text-white truncate">{user?.name || "User"}</p>
+                          <p className="text-xs text-white/50 truncate">{user?.email || ""}</p>
                         </div>
                       </div>
                     </div>
@@ -154,15 +173,21 @@ const Navbar = () => {
                         variant="ghost" 
                         className="w-full justify-start gap-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg"
                         onClick={logoutHandler}
+                        disabled={isLoggingOut}
                       >
-                        <LogOut className="h-4 w-4" />
-                        Logout
+                        {isLoggingOut ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <LogOut className="h-4 w-4" />
+                        )}
+                        {isLoggingOut ? "Logging out..." : "Logout"}
                       </Button>
                     </div>
                   </div>
                 </PopoverContent>
               </Popover>
             ) : (
+              /* Unauthenticated - Login Button */
               <div className="hidden sm:flex items-center gap-2">
                 <Link href="/login">
                   <Button 
@@ -170,13 +195,6 @@ const Navbar = () => {
                     className="text-white/80 hover:text-white hover:bg-white/10 rounded-full"
                   >
                     Login
-                  </Button>
-                </Link>
-                <Link href="/signup">
-                  <Button 
-                    className="bg-white text-black hover:bg-white/90 rounded-full px-6 font-semibold"
-                  >
-                    Get Started
                   </Button>
                 </Link>
               </div>
@@ -224,8 +242,13 @@ const Navbar = () => {
                 </motion.div>
               ))}
               
-              {!isAuth && (
-                <div className="pt-4 border-t border-white/10 space-y-2">
+              {!isAuth && !isPending && (
+                <motion.div 
+                  className="pt-4 border-t border-white/10 space-y-2"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: navLinks.length * 0.1 }}
+                >
                   <Link href="/login" onClick={() => setIsOpen(false)}>
                     <Button 
                       variant="outline" 
@@ -234,14 +257,63 @@ const Navbar = () => {
                       Login
                     </Button>
                   </Link>
-                  <Link href="/signup" onClick={() => setIsOpen(false)}>
+                </motion.div>
+              )}
+
+              {isAuth && (
+                <motion.div 
+                  className="pt-4 border-t border-white/10 space-y-2"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: navLinks.length * 0.1 }}
+                >
+                  <div className="flex items-center gap-3 px-3 py-2">
+                    <Avatar className="h-8 w-8" size="sm">
+                      <AvatarImage src={user?.image || ""} alt={user?.name || "User"} />
+                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-xs">
+                        {getUserInitials()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-sm font-medium text-white truncate">{user?.name}</span>
+                      <span className="text-xs text-white/50 truncate">{user?.email}</span>
+                    </div>
+                  </div>
+                  <Link href="/profile" onClick={() => setIsOpen(false)}>
                     <Button 
-                      className="w-full bg-white text-black hover:bg-white/90 rounded-full font-semibold"
+                      variant="ghost" 
+                      className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10 rounded-lg"
                     >
-                      Get Started
+                      <User className="h-4 w-4 mr-2" />
+                      Profile
                     </Button>
                   </Link>
-                </div>
+                  <Link href="/my-jobs" onClick={() => setIsOpen(false)}>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10 rounded-lg"
+                    >
+                      <Briefcase className="h-4 w-4 mr-2" />
+                      My Applications
+                    </Button>
+                  </Link>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg"
+                    onClick={() => {
+                      logoutHandler();
+                      setIsOpen(false);
+                    }}
+                    disabled={isLoggingOut}
+                  >
+                    {isLoggingOut ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <LogOut className="h-4 w-4 mr-2" />
+                    )}
+                    {isLoggingOut ? "Logging out..." : "Logout"}
+                  </Button>
+                </motion.div>
               )}
             </div>
           </motion.div>
