@@ -230,10 +230,18 @@ export default function CareerPathBuilder() {
 
       console.log("Sending request:", { careerPathLabel, techStackWithLabels });
 
-      const { data } = await axios.post("/api/career-path", {
-        careerPath: careerPathLabel,
-        techStack: techStackWithLabels,
-      });
+      const { data } = await axios.post(
+        "/api/career-path",
+        {
+          careerPath: careerPathLabel,
+          techStack: techStackWithLabels,
+        },
+        {
+          headers: {
+            "x-careerPath-usage": usageCount.toString(),
+          },
+        },
+      );
 
       console.log("Received API response:", data);
       console.log("Response keys:", Object.keys(data));
@@ -249,6 +257,15 @@ export default function CareerPathBuilder() {
     } catch (error: any) {
       console.error("Error generating roadmap:", error);
       console.error("Error response:", error.response?.data);
+
+      if (
+        error.response?.status === 403 &&
+        error.response?.data?.error === "Free trial limit exceeded"
+      ) {
+        setLoading(false);
+        setShowLoginPrompt(true);
+        return;
+      }
 
       let errorMessage = "Failed to generate roadmap. Please try again.";
       if (error.response?.status === 400) {

@@ -63,6 +63,12 @@ const CarrerGuid = () => {
   };
 
   const CarrerGuideResponse = async () => {
+    // Check free trial limit
+    if (!isAuthenticated && usageCount >= FREE_TRIAL_LIMIT) {
+      setShowLoginPrompt(true);
+      return;
+    }
+
     if (skills.length === 0) {
       alert("Please enter at least one skill");
       return;
@@ -76,11 +82,24 @@ const CarrerGuid = () => {
     setLoading(true);
 
     try {
-      const { data } = await axios.post(`${utils_services}`, {
-        skills: skills,
-      });
+      const { data } = await axios.post(
+        `${utils_services}`,
+        { skills: skills },
+        {
+          headers: {
+            "x-career-usage": usageCount.toString(),
+          },
+        },
+      );
 
       setResponse(data);
+
+      // Increment usage count if not authenticated
+      if (!isAuthenticated) {
+        const newCount = usageCount + 1;
+        setUsageCount(newCount);
+        localStorage.setItem("careerUsageCount", newCount.toString());
+      }
     } catch (error: unknown) {
       const axiosError = error as {
         response?: { data?: { error?: string }; status?: number };
@@ -88,6 +107,15 @@ const CarrerGuid = () => {
       };
 
       let errorMessage = "Unknown error occurred";
+
+      if (
+        axiosError.response?.status === 403 &&
+        axiosError.response?.data?.error === "Free trial limit exceeded"
+      ) {
+        setShowLoginPrompt(true);
+        setLoading(false);
+        return;
+      }
 
       if (axiosError.response?.status === 429) {
         errorMessage = "Too many requests. Please wait a moment and try again.";
@@ -112,6 +140,12 @@ const CarrerGuid = () => {
 
   return (
     <section id="roadmap" className="relative section-padding overflow-hidden">
+      <LoginPromptModal
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
+        title="Career Guide Limit Reached"
+        description="You've used your free career guidance sessions! Sign in to unlock unlimited access."
+      />
       {/* Background Elements */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
