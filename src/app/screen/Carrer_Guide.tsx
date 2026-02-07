@@ -37,6 +37,9 @@ const CarrerGuid = () => {
       try {
         const { data } = await axios.get("/api/auth/status");
         setIsAuthenticated(data.isAuthenticated);
+        if (!data.isAuthenticated && data.usage) {
+          setUsageCount(data.usage.career);
+        }
       } catch (error) {
         setIsAuthenticated(false);
       }

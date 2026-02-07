@@ -64,6 +64,9 @@ export default function ResumeAnalyzer() {
         if (response.ok) {
           const data = await response.json();
           setIsAuthenticated(data.isAuthenticated);
+          if (!data.isAuthenticated && data.usage) {
+            setUsageCount(data.usage.resumeAnalyzer);
+          }
         }
       } catch (error) {
         setIsAuthenticated(false);
