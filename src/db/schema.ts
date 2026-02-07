@@ -1,5 +1,31 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  boolean,
+  index,
+  integer,
+} from "drizzle-orm/pg-core";
+
+export const guestUsage = pgTable(
+  "guest_usage",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    ipAddress: text("ip_address").notNull().unique(),
+    careerPathCount: integer("career_path_count").default(0).notNull(),
+    careerGuideCount: integer("career_guide_count").default(0).notNull(),
+    resumeAnalyzerCount: integer("resume_analyzer_count").default(0).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [index("guest_usage_ip_idx").on(table.ipAddress)],
+);
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),

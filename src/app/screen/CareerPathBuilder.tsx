@@ -149,13 +149,15 @@ export default function CareerPathBuilder() {
 
   // Check authentication and usage on mount
   useEffect(() => {
-    // Check if user is logged in (you can replace this with your actual auth check)
-    const checkAuth = () => {
-      // Example: Check for auth token or session
-      const token =
-        localStorage.getItem("authToken") ||
-        sessionStorage.getItem("authToken");
-      setIsAuthenticated(!!token);
+    // Check if user is logged in via API
+    const checkAuth = async () => {
+      try {
+        const { data } = await axios.get("/api/auth/status");
+        setIsAuthenticated(data.isAuthenticated);
+      } catch (error) {
+        console.error("Failed to check auth status:", error);
+        setIsAuthenticated(false);
+      }
     };
 
     // Get usage count from localStorage

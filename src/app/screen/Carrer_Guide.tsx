@@ -32,10 +32,16 @@ const CarrerGuid = () => {
   const FREE_TRIAL_LIMIT = 2; // Limit from auth-middleware
 
   useEffect(() => {
-    // Check auth
-    const token =
-      localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-    setIsAuthenticated(!!token);
+    // Check auth via API
+    const checkAuth = async () => {
+      try {
+        const { data } = await axios.get("/api/auth/status");
+        setIsAuthenticated(data.isAuthenticated);
+      } catch (error) {
+        setIsAuthenticated(false);
+      }
+    };
+    checkAuth();
 
     // Check usage
     const count = parseInt(localStorage.getItem("careerUsageCount") || "0", 10);

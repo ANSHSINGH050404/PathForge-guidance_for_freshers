@@ -57,10 +57,19 @@ export default function ResumeAnalyzer() {
   const FREE_TRIAL_LIMIT = 1;
 
   useEffect(() => {
-    // Check auth
-    const token =
-      localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-    setIsAuthenticated(!!token);
+    // Check auth via API
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("/api/auth/status");
+        if (response.ok) {
+          const data = await response.json();
+          setIsAuthenticated(data.isAuthenticated);
+        }
+      } catch (error) {
+        setIsAuthenticated(false);
+      }
+    };
+    checkAuth();
 
     // Check usage
     const count = parseInt(

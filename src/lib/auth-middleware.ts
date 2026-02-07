@@ -15,15 +15,16 @@ export type EndpointType = keyof typeof FREE_TRIAL_LIMITS;
  */
 export function isAuthenticated(req: NextRequest): boolean {
   // Check for auth token in cookies
-  const authToken = req.cookies.get("authToken")?.value;
+  // The system uses 'better-auth.session_token' for session management
+  const sessionToken = req.cookies.get("better-auth.session_token")?.value;
 
-  // Check for auth token in Authorization header
+  // Check for auth token in Authorization header (if applicable)
   const authHeader = req.headers.get("authorization");
   const bearerToken = authHeader?.startsWith("Bearer ")
     ? authHeader.substring(7)
     : null;
 
-  return !!(authToken || bearerToken);
+  return !!(sessionToken || bearerToken);
 }
 
 /**
