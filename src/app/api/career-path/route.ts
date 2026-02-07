@@ -3,7 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 import { validateRequest } from "@/lib/validations";
 import { careerPathBuilderSchema } from "@/lib/validations-career-path";
 import { rateLimit } from "@/lib/middleware";
-import { requireAuthOrFreeTrial } from "@/lib/auth-middleware";
+import { requireAuthOrFreeTrial, incrementUsage } from "@/lib/auth-middleware";
 
 // Initialize the Google GenAI client
 // Ensure GOOGLE_API_KEY is set in your .env.local file
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     // ------------------------------------------------------------------
     // 1. Check Authentication / Free Trial
     // ------------------------------------------------------------------
-    const authCheck = requireAuthOrFreeTrial(req, "careerPath");
+    const authCheck = await requireAuthOrFreeTrial(req, "careerPath");
     if (authCheck) {
       return authCheck;
     }
@@ -154,6 +154,9 @@ export async function POST(req: NextRequest) {
       generatedAt: new Date().toISOString(),
       model: modelId,
     };
+
+    // Increment usage
+    await incrementUsage(req, "careerPath");
 
     return NextResponse.json(jsonResponse, {
       status: 200,

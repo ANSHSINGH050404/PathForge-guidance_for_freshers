@@ -2,7 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 import { resumeAnalyzerSchema, validateRequest } from "@/lib/validations";
 import { requireAuth, rateLimit } from "@/lib/middleware";
-import { requireAuthOrFreeTrial } from "@/lib/auth-middleware";
+import { requireAuthOrFreeTrial, incrementUsage } from "@/lib/auth-middleware";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_API_KEY!,
@@ -14,7 +14,7 @@ const MAX_REQUESTS_PER_MINUTE = 5; // Lower limit for resume analysis (more reso
 export async function POST(req: NextRequest) {
   try {
     // Check Authentication / Free Trial
-    const authCheck = requireAuthOrFreeTrial(req, "resumeAnalyzer");
+    const authCheck = await requireAuthOrFreeTrial(req, "resumeAnalyzer");
     if (authCheck) {
       return authCheck;
     }
@@ -153,6 +153,9 @@ Focus on:
         { status: 500 },
       );
     }
+
+    // Increment usage
+    await incrementUsage(req, "resumeAnalyzer");
 
     return NextResponse.json(jsonResponse, {
       headers: {

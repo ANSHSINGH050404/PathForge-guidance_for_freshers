@@ -154,6 +154,9 @@ export default function CareerPathBuilder() {
       try {
         const { data } = await axios.get("/api/auth/status");
         setIsAuthenticated(data.isAuthenticated);
+        if (!data.isAuthenticated && data.usage) {
+          setUsageCount(data.usage.careerPath);
+        }
       } catch (error) {
         console.error("Failed to check auth status:", error);
         setIsAuthenticated(false);
