@@ -82,7 +82,77 @@ export async function POST(req: NextRequest) {
     - Include hands-on projects from day 1.
     - Emphasize real-world applications.
     
-    IMPORTANT: You must return PURE JSON. Do not include markdown formatting (like \`\`\`json).`;
+    IMPORTANT: You must return PURE JSON in this EXACT structure:
+    
+    {
+      "summary": "Brief overview of the career path (2-3 sentences)",
+      "timeline": {
+        "beginner": "e.g., 3-6 months",
+        "withBasics": "e.g., 6-12 months"
+      },
+      "learningPath": [
+        {
+          "phase": "Phase name (e.g., Foundation)",
+          "description": "What this phase covers",
+          "duration": "e.g., 2-3 months",
+          "topics": [
+            {
+              "name": "Topic name",
+              "description": "What you'll learn",
+              "resources": [
+                {
+                  "title": "Resource title",
+                  "type": "video|documentation|course|practice",
+                  "url": "https://...",
+                  "platform": "YouTube|Udemy|Official Docs|etc",
+                  "isFree": true|false,
+                  "duration": "e.g., 2 hours"
+                }
+              ],
+              "projects": [
+                {
+                  "title": "Project name",
+                  "description": "What to build",
+                  "difficulty": "beginner|intermediate|advanced",
+                  "skills": ["skill1", "skill2"]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "careerRoadmap": {
+        "entryLevel": {
+          "title": "Junior ${careerPath}",
+          "salary": "$50k - $80k",
+          "skills": ["skill1", "skill2", "skill3"]
+        },
+        "midLevel": {
+          "title": "Mid-level ${careerPath}",
+          "salary": "$80k - $120k",
+          "skills": ["skill1", "skill2", "skill3"]
+        },
+        "senior": {
+          "title": "Senior ${careerPath}",
+          "salary": "$120k - $180k+",
+          "skills": ["skill1", "skill2", "skill3"]
+        }
+      },
+      "bestPractices": [
+        "Practice tip 1",
+        "Practice tip 2"
+      ],
+      "communityResources": [
+        {
+          "name": "Community name",
+          "type": "forum|discord|slack|etc",
+          "url": "https://...",
+          "description": "What it offers"
+        }
+      ]
+    }
+    
+    Do NOT include markdown code blocks or any formatting. Return ONLY the JSON object.`;
 
     // ------------------------------------------------------------------
     // 5. Call Google Gemini API

@@ -26,6 +26,14 @@ export default function RoadmapDisplay({
   roadmap,
   onReset,
 }: RoadmapDisplayProps) {
+  // Debug: Log the roadmap data structure
+  if (process.env.NODE_ENV === "development") {
+    console.log("RoadmapDisplay received data:", roadmap);
+    console.log("Roadmap keys:", roadmap ? Object.keys(roadmap) : "null");
+    console.log("Has learningPath?", roadmap?.learningPath);
+    console.log("Has careerRoadmap?", roadmap?.careerRoadmap);
+  }
+
   const getResourceIcon = (type: string) => {
     switch (type) {
       case "video":
@@ -164,7 +172,7 @@ export default function RoadmapDisplay({
 
       {/* Learning Path */}
       {roadmap.learningPath && roadmap.learningPath.length > 0 && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8, duration: 0.5 }}
@@ -214,162 +222,213 @@ export default function RoadmapDisplay({
                     </div>
                   </div>
 
-              {/* Topics */}
-              <div className="space-y-4">
-                {phase.topics &&
-                  phase.topics.map((topic: any, topicIndex: number) => (
-                    <div
-                      key={topicIndex}
-                      className="bg-white/5 rounded-lg p-4 border border-white/5"
-                    >
-                      <h6 className="font-semibold text-white mb-2">
-                        {topic.title}
-                      </h6>
-                      <p className="text-sm text-neutral-400 mb-4">
-                        {topic.description}
-                      </p>
+                  {/* Topics */}
+                  <div className="space-y-4">
+                    {phase.topics &&
+                      phase.topics.map((topic: any, topicIndex: number) => (
+                        <div
+                          key={topicIndex}
+                          className="bg-white/5 rounded-lg p-4 border border-white/5"
+                        >
+                          <h6 className="font-semibold text-white mb-2">
+                            {topic.title}
+                          </h6>
+                          <p className="text-sm text-neutral-400 mb-4">
+                            {topic.description}
+                          </p>
 
-                      {/* Resources */}
-                      {topic.resources && topic.resources.length > 0 && (
-                        <div className="space-y-2 mb-4">
-                          <div className="text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                            Learning Resources
-                          </div>
-                          {topic.resources.map(
-                            (resource: any, resIndex: number) => (
-                              <a
-                                key={resIndex}
-                                href={resource.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors group border border-white/5"
-                              >
-                                <div className="text-blue-400">
-                                  {getResourceIcon(resource.type)}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium text-white group-hover:text-blue-400 transition-colors">
-                                      {resource.title}
-                                    </span>
-                                    {resource.isFree && (
-                                      <span className="px-2 py-0.5 rounded text-xs bg-green-500/10 text-green-400 border border-green-500/20">
-                                        Free
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-3 text-xs text-neutral-500 mt-1">
-                                    <span>{resource.platform}</span>
-                                    {resource.duration && (
-                                      <>
-                                        <span>•</span>
-                                        <span>{resource.duration}</span>
-                                      </>
-                                    )}
-                                  </div>
-                                </div>
-                                <ExternalLink className="w-4 h-4 text-neutral-500 group-hover:text-blue-400 transition-colors" />
-                              </a>
-                            ),
-                          )}
-                        </div>
-                      )}
-
-                      {/* Practice Projects */}
-                      {topic.practiceProjects &&
-                        topic.practiceProjects.length > 0 && (
-                          <div className="space-y-2">
-                            <div className="text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                              Practice Projects
-                            </div>
-                            {topic.practiceProjects.map(
-                              (project: any, projIndex: number) => (
-                                <div
-                                  key={projIndex}
-                                  className="p-3 rounded-lg bg-purple-500/5 border border-purple-500/10"
-                                >
-                                  <div className="flex items-start justify-between mb-2">
-                                    <span className="font-medium text-white text-sm">
-                                      {project.title}
-                                    </span>
-                                    <span
-                                      className={`px-2 py-0.5 rounded text-xs border ${getDifficultyColor(project.difficulty)}`}
-                                    >
-                                      {project.difficulty}
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-neutral-400 mb-2">
-                                    {project.description}
-                                  </p>
-                                  <div className="flex flex-wrap gap-1">
-                                    {project.skills &&
-                                      project.skills.map(
-                                        (skill: string, skillIdx: number) => (
-                                          <span
-                                            key={skillIdx}
-                                            className="px-2 py-0.5 rounded text-xs bg-white/5 text-neutral-400"
-                                          >
-                                            {skill}
+                          {/* Resources */}
+                          {topic.resources && topic.resources.length > 0 && (
+                            <div className="space-y-2 mb-4">
+                              <div className="text-xs font-semibold text-neutral-400 uppercase tracking-wider flex items-center gap-2">
+                                <div className="w-1 h-4 bg-gradient-to-b from-blue-500 to-cyan-500 rounded-full" />
+                                Learning Resources
+                              </div>
+                              {topic.resources.map(
+                                (resource: any, resIndex: number) => (
+                                  <a
+                                    key={resIndex}
+                                    href={resource.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-white/5 to-white/0 hover:from-blue-500/10 hover:to-cyan-500/10 transition-all duration-300 group border border-white/5 hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/10"
+                                  >
+                                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 group-hover:scale-110 transition-all">
+                                      {getResourceIcon(resource.type)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-sm font-semibold text-white group-hover:text-blue-400 transition-colors">
+                                          {resource.title}
+                                        </span>
+                                        {resource.isFree && (
+                                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20 animate-pulse">
+                                            Free
                                           </span>
-                                        ),
-                                      )}
-                                  </div>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-3 text-xs text-neutral-500 mt-1">
+                                        <span className="font-medium">
+                                          {resource.platform}
+                                        </span>
+                                        {resource.duration && (
+                                          <>
+                                            <span>•</span>
+                                            <span className="flex items-center gap-1">
+                                              <Clock className="w-3 h-3" />
+                                              {resource.duration}
+                                            </span>
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <ExternalLink className="w-4 h-4 text-neutral-500 group-hover:text-blue-400 transition-all group-hover:translate-x-1" />
+                                  </a>
+                                ),
+                              )}
+                            </div>
+                          )}
+
+                          {/* Practice Projects */}
+                          {topic.practiceProjects &&
+                            topic.practiceProjects.length > 0 && (
+                              <div className="space-y-2">
+                                <div className="text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                                  Practice Projects
                                 </div>
-                              ),
+                                {topic.practiceProjects.map(
+                                  (project: any, projIndex: number) => (
+                                    <div
+                                      key={projIndex}
+                                      className="p-3 rounded-lg bg-purple-500/5 border border-purple-500/10"
+                                    >
+                                      <div className="flex items-start justify-between mb-2">
+                                        <span className="font-medium text-white text-sm">
+                                          {project.title}
+                                        </span>
+                                        <span
+                                          className={`px-2 py-0.5 rounded text-xs border ${getDifficultyColor(project.difficulty)}`}
+                                        >
+                                          {project.difficulty}
+                                        </span>
+                                      </div>
+                                      <p className="text-xs text-neutral-400 mb-2">
+                                        {project.description}
+                                      </p>
+                                      <div className="flex flex-wrap gap-1">
+                                        {project.skills &&
+                                          project.skills.map(
+                                            (
+                                              skill: string,
+                                              skillIdx: number,
+                                            ) => (
+                                              <span
+                                                key={skillIdx}
+                                                className="px-2 py-0.5 rounded text-xs bg-white/5 text-neutral-400"
+                                              >
+                                                {skill}
+                                              </span>
+                                            ),
+                                          )}
+                                      </div>
+                                    </div>
+                                  ),
+                                )}
+                              </div>
                             )}
-                          </div>
-                        )}
-                    </div>
-                  ))}
-              </div>
-            </div>
-          ))}
-        </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
       )}
 
       {/* Career Roadmap */}
       {roadmap.careerRoadmap && (
-        <div className="space-y-4">
-          <h4 className="text-2xl font-bold text-white flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-green-400" />
-            Career Progression
-          </h4>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.2, duration: 0.5 }}
+          className="space-y-6"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30">
+              <TrendingUp className="w-6 h-6 text-green-400" />
+            </div>
+            <h4 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+              Career Progression
+            </h4>
+          </div>
 
-          <div className="grid md:grid-cols-3 gap-4">
-            {["entryLevel", "midLevel", "senior"].map((level) => {
-              const data = roadmap.careerRoadmap[level];
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                key: "entryLevel",
+                gradient: "from-blue-500/10 to-cyan-500/10",
+                border: "border-blue-500/30",
+              },
+              {
+                key: "midLevel",
+                gradient: "from-purple-500/10 to-pink-500/10",
+                border: "border-purple-500/30",
+              },
+              {
+                key: "senior",
+                gradient: "from-orange-500/10 to-red-500/10",
+                border: "border-orange-500/30",
+              },
+            ].map((config, idx) => {
+              const data = roadmap.careerRoadmap[config.key];
               if (!data) return null;
 
               return (
-                <div key={level} className="glass-card p-5">
-                  <h5 className="font-bold text-white mb-1">{data.title}</h5>
-                  <div className="flex items-center gap-2 text-green-400 mb-3">
-                    <DollarSign className="w-4 h-4" />
-                    <span className="text-sm font-medium">{data.salary}</span>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="text-xs font-medium text-neutral-500 uppercase">
-                      Key Skills
+                <motion.div
+                  key={config.key}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.3 + idx * 0.1, duration: 0.5 }}
+                  className={`relative overflow-hidden rounded-xl bg-gradient-to-br ${config.gradient} border ${config.border} p-6 hover:scale-105 transition-all duration-300 group`}
+                >
+                  {/* Hover glow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                  <div className="relative z-10">
+                    <h5 className="text-xl font-bold text-white mb-3 group-hover:text-green-400 transition-colors">
+                      {data.title}
+                    </h5>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 mb-4 w-fit">
+                      <DollarSign className="w-5 h-5 text-green-400" />
+                      <span className="text-green-400 font-bold">
+                        {data.salary}
+                      </span>
                     </div>
-                    <div className="flex flex-wrap gap-1">
-                      {data.skills &&
-                        data.skills
-                          .slice(0, 5)
-                          .map((skill: string, idx: number) => (
-                            <span
-                              key={idx}
-                              className="px-2 py-1 rounded text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                            >
-                              {skill}
-                            </span>
-                          ))}
+                    <div className="space-y-3">
+                      <div className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+                        Key Skills
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {data.skills &&
+                          data.skills
+                            .slice(0, 5)
+                            .map((skill: string, idx: number) => (
+                              <span
+                                key={idx}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 text-white border border-white/10 hover:bg-white/10 transition-colors"
+                              >
+                                {skill}
+                              </span>
+                            ))}
+                      </div>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Best Practices */}
