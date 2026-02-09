@@ -56,71 +56,163 @@ export default function RoadmapDisplay({
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
       className="space-y-8"
     >
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex-1">
-          <h3 className="text-3xl font-bold text-white mb-3">
-            Your Personalized Learning Roadmap
-          </h3>
-          <p className="text-neutral-400 text-lg">{roadmap.summary}</p>
+      {/* Header with Gradient Background */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.2, duration: 0.5 }}
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-cyan-500/10 border border-white/10 p-8"
+      >
+        {/* Animated background glow */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-cyan-500/5 animate-pulse" />
 
-          {/* Timeline */}
-          {roadmap.timeline && (
-            <div className="flex flex-wrap gap-4 mt-4">
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="w-4 h-4 text-blue-400" />
-                <span className="text-neutral-400">Beginner:</span>
-                <span className="text-white font-medium">
-                  {roadmap.timeline.beginner}
+        <div className="relative z-10">
+          <div className="flex items-start justify-between mb-6">
+            <div className="flex-1">
+              {/* Success Badge */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 border border-green-500/20 backdrop-blur-sm mb-4"
+              >
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-sm font-medium text-green-400">
+                  Roadmap Generated Successfully
                 </span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="w-4 h-4 text-purple-400" />
-                <span className="text-neutral-400">With Basics:</span>
-                <span className="text-white font-medium">
-                  {roadmap.timeline.withBasics}
+              </motion.div>
+
+              <motion.h3
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="text-4xl font-bold mb-4"
+              >
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+                  Your Personalized Learning Roadmap
                 </span>
-              </div>
+              </motion.h3>
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="text-neutral-300 text-lg leading-relaxed"
+              >
+                {roadmap.summary}
+              </motion.p>
+
+              {/* Timeline with enhanced design */}
+              {roadmap.timeline && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                  className="flex flex-wrap gap-4 mt-6"
+                >
+                  <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                    <div className="p-2 rounded-lg bg-blue-500/20">
+                      <Clock className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <div>
+                      <span className="text-xs text-neutral-400 block">
+                        Beginner Timeline
+                      </span>
+                      <span className="text-white font-semibold">
+                        {roadmap.timeline.beginner}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                    <div className="p-2 rounded-lg bg-purple-500/20">
+                      <Clock className="w-4 h-4 text-purple-400" />
+                    </div>
+                    <div>
+                      <span className="text-xs text-neutral-400 block">
+                        With Basics
+                      </span>
+                      <span className="text-white font-semibold">
+                        {roadmap.timeline.withBasics}
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
             </div>
-          )}
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.7 }}
+            >
+              <Button
+                onClick={onReset}
+                variant="outline"
+                className="btn-secondary flex-shrink-0 hover:scale-105 transition-transform"
+              >
+                Start Over
+              </Button>
+            </motion.div>
+          </div>
         </div>
-        <Button
-          onClick={onReset}
-          variant="outline"
-          className="btn-secondary flex-shrink-0"
-        >
-          Start Over
-        </Button>
-      </div>
+      </motion.div>
 
       {/* Learning Path */}
       {roadmap.learningPath && roadmap.learningPath.length > 0 && (
-        <div className="space-y-6">
-          <h4 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Target className="w-6 h-6 text-blue-400" />
-            Learning Path
-          </h4>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8, duration: 0.5 }}
+          className="space-y-6"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30">
+              <Target className="w-6 h-6 text-blue-400" />
+            </div>
+            <h4 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+              Learning Path
+            </h4>
+          </div>
 
-          {roadmap.learningPath.map((phase: any, phaseIndex: number) => (
-            <div key={phaseIndex} className="glass-card p-6">
-              {/* Phase Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h5 className="text-xl font-bold text-white mb-1">
-                    {phase.phase}
-                  </h5>
-                  <p className="text-neutral-400 text-sm">
-                    {phase.description}
-                  </p>
+          <div className="space-y-6">
+            {roadmap.learningPath.map((phase: any, phaseIndex: number) => (
+              <motion.div
+                key={phaseIndex}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.9 + phaseIndex * 0.1, duration: 0.5 }}
+                className="relative group"
+              >
+                {/* Phase Number Badge */}
+                <div className="absolute -left-4 top-6 z-10">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/50 group-hover:scale-110 transition-transform">
+                    {phaseIndex + 1}
+                  </div>
                 </div>
-                <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-sm font-medium border border-blue-500/20">
-                  {phase.duration}
-                </span>
-              </div>
+
+                <div className="glass-card p-6 pl-12 hover:bg-white/5 transition-all duration-300 border-l-4 border-blue-500/50 hover:border-blue-500">
+                  {/* Phase Header */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h5 className="text-2xl font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">
+                        {phase.phase}
+                      </h5>
+                      <p className="text-neutral-400 text-sm leading-relaxed">
+                        {phase.description}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20">
+                      <Clock className="w-4 h-4 text-blue-400" />
+                      <span className="text-blue-400 font-semibold text-sm">
+                        {phase.duration}
+                      </span>
+                    </div>
+                  </div>
 
               {/* Topics */}
               <div className="space-y-4">

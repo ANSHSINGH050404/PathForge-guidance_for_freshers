@@ -586,23 +586,6 @@ export default function CareerPathBuilder() {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5 }}
                 >
-                  {/* Debug: Show what we received */}
-                  {process.env.NODE_ENV === "development" && (
-                    <div className="mb-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                      <p className="text-yellow-400 text-sm font-mono mb-2">
-                        Debug: Roadmap data structure
-                      </p>
-                      <details className="text-xs text-neutral-400">
-                        <summary className="cursor-pointer text-yellow-400 mb-2">
-                          Click to view raw data
-                        </summary>
-                        <pre className="overflow-auto max-h-96 bg-black/50 p-2 rounded">
-                          {JSON.stringify(roadmap, null, 2)}
-                        </pre>
-                      </details>
-                    </div>
-                  )}
-
                   {roadmap && typeof roadmap === "object" ? (
                     <RoadmapDisplay roadmap={roadmap} onReset={resetBuilder} />
                   ) : (
