@@ -28,4 +28,9 @@ Thumbs.db
 
 # TypeScript
 *.tsbuildinfo
+IMPLEMENTATION_PLAN.md
+NEW_FEATURES.md
+UI_SPECIFICATION.md
+SECURITY_GUIDELINES.md
+
 

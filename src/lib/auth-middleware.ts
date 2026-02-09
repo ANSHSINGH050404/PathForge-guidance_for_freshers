@@ -13,6 +13,29 @@ export const FREE_TRIAL_LIMITS = {
 export type EndpointType = keyof typeof FREE_TRIAL_LIMITS;
 
 /**
+ * Validate IP address format (IPv4 or IPv6)
+ */
+function isValidIP(ip: string): boolean {
+  if (ip === "unknown" || ip === "127.0.0.1" || ip === "::1") {
+    return true; // Allow localhost and unknown for development
+  }
+
+  // IPv4 validation
+  const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+  if (ipv4Regex.test(ip)) {
+    const parts = ip.split(".");
+    return parts.every((part) => {
+      const num = parseInt(part, 10);
+      return num >= 0 && num <= 255;
+    });
+  }
+
+  // IPv6 validation (simplified)
+  const ipv6Regex = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/;
+  return ipv6Regex.test(ip);
+}
+
+/**
  * Check if user is authenticated
  */
 export function isAuthenticated(req: NextRequest): boolean {
@@ -31,17 +54,28 @@ export function isAuthenticated(req: NextRequest): boolean {
 
 /**
  * Get guest identifier (IP address)
+ * Uses standard headers for IP detection in production environments
  */
 export function getGuestIdentifier(req: NextRequest): string {
+  // Check x-forwarded-for header (most common in production)
   const forwardedFor = req.headers.get("x-forwarded-for");
   if (forwardedFor) {
     return forwardedFor.split(",")[0].trim();
   }
-  const ip = req.headers.get("x-real-ip") || (req as any).ip || "unknown";
-  if (process.env.NODE_ENV === "development" && ip === "unknown") {
+
+  // Check x-real-ip header (used by some proxies)
+  const realIp = req.headers.get("x-real-ip");
+  if (realIp) {
+    return realIp.trim();
+  }
+
+  // Development fallback
+  if (process.env.NODE_ENV === "development") {
     return "127.0.0.1";
   }
-  return ip;
+
+  // Production fallback - should rarely happen
+  return "unknown";
 }
 
 /**
@@ -57,6 +91,19 @@ export async function checkFreeTrial(
   }
 
   const ip = getGuestIdentifier(req);
+
+  // Validate IP address format
+  if (!isValidIP(ip)) {
+    console.warn(`Invalid IP address detected: ${ip}`);
+    return {
+      allowed: false,
+      response: NextResponse.json(
+        { error: "Invalid client identifier." },
+        { status: 400 },
+      ),
+    };
+  }
+
   if (ip === "unknown") {
     return {
       allowed: false,
@@ -113,48 +160,72 @@ export async function checkFreeTrial(
 }
 
 /**
- * Increment usage count for guest
+ * Increment usage count for guest with retry logic
  */
 export async function incrementUsage(
   req: NextRequest,
   endpoint: EndpointType,
+  retries: number = 2,
 ): Promise<void> {
   if (isAuthenticated(req)) return;
 
   const ip = getGuestIdentifier(req);
-  if (ip === "unknown") return;
 
-  try {
-    const existing = await db
-      .select()
-      .from(guestUsage)
-      .where(eq(guestUsage.ipAddress, ip))
-      .limit(1);
+  // Validate IP before database operations
+  if (!isValidIP(ip) || ip === "unknown") {
+    console.warn(`Skipping usage increment for invalid IP: ${ip}`);
+    return;
+  }
 
-    if (existing.length === 0) {
-      const newRecord = {
-        ipAddress: ip,
-        careerPathCount: endpoint === "careerPath" ? 1 : 0,
-        careerGuideCount: endpoint === "career" ? 1 : 0,
-        resumeAnalyzerCount: endpoint === "resumeAnalyzer" ? 1 : 0,
-      };
-      await db.insert(guestUsage).values(newRecord);
-    } else {
-      const updates: any = { updatedAt: new Date() };
-      if (endpoint === "careerPath")
-        updates.careerPathCount = existing[0].careerPathCount + 1;
-      else if (endpoint === "career")
-        updates.careerGuideCount = existing[0].careerGuideCount + 1;
-      else if (endpoint === "resumeAnalyzer")
-        updates.resumeAnalyzerCount = existing[0].resumeAnalyzerCount + 1;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const existing = await db
+        .select()
+        .from(guestUsage)
+        .where(eq(guestUsage.ipAddress, ip))
+        .limit(1);
 
-      await db
-        .update(guestUsage)
-        .set(updates)
-        .where(eq(guestUsage.ipAddress, ip));
+      if (existing.length === 0) {
+        const newRecord = {
+          ipAddress: ip,
+          careerPathCount: endpoint === "careerPath" ? 1 : 0,
+          careerGuideCount: endpoint === "career" ? 1 : 0,
+          resumeAnalyzerCount: endpoint === "resumeAnalyzer" ? 1 : 0,
+        };
+        await db.insert(guestUsage).values(newRecord);
+      } else {
+        const updates: any = { updatedAt: new Date() };
+        if (endpoint === "careerPath")
+          updates.careerPathCount = existing[0].careerPathCount + 1;
+        else if (endpoint === "career")
+          updates.careerGuideCount = existing[0].careerGuideCount + 1;
+        else if (endpoint === "resumeAnalyzer")
+          updates.resumeAnalyzerCount = existing[0].resumeAnalyzerCount + 1;
+
+        await db
+          .update(guestUsage)
+          .set(updates)
+          .where(eq(guestUsage.ipAddress, ip));
+      }
+
+      // Success - exit retry loop
+      return;
+    } catch (error) {
+      const isLastAttempt = attempt === retries;
+
+      if (isLastAttempt) {
+        // Log error on final attempt
+        console.error(
+          `Failed to increment usage after ${retries + 1} attempts:`,
+          error,
+        );
+        // Could send to error monitoring service here (e.g., Sentry)
+      } else {
+        // Wait before retry (exponential backoff)
+        const waitTime = Math.pow(2, attempt) * 100; // 100ms, 200ms, 400ms...
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
+      }
     }
-  } catch (error) {
-    console.error("Failed to increment usage:", error);
   }
 }
 

@@ -4,6 +4,7 @@ import { validateRequest } from "@/lib/validations";
 import { careerPathBuilderSchema } from "@/lib/validations-career-path";
 import { rateLimit } from "@/lib/middleware";
 import { requireAuthOrFreeTrial, incrementUsage } from "@/lib/auth-middleware";
+import { AI_MODELS } from "@/lib/ai-config";
 
 // Initialize the Google GenAI client
 // Ensure GOOGLE_API_KEY is set in your .env.local file
@@ -86,12 +87,8 @@ export async function POST(req: NextRequest) {
     // ------------------------------------------------------------------
     // 5. Call Google Gemini API
     // ------------------------------------------------------------------
-    // using the 'gemini-1.5-flash' model for speed and cost-effectiveness
-    // Note: 'gemini-2.5-flash' is not yet standard in all regions/SDKs.
-    const modelId = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-
     const result = await genAI.models.generateContent({
-      model: modelId,
+      model: AI_MODELS.CAREER_PATH,
       contents: [
         {
           role: "user",
@@ -119,14 +116,14 @@ export async function POST(req: NextRequest) {
 
     const candidate = result.candidates[0];
     if (
-      !candidate.content ||
+      !candidate?.content ||
       !candidate.content.parts ||
       candidate.content.parts.length === 0
     ) {
       throw new Error("Empty response from AI model.");
     }
 
-    const responseText = candidate.content.parts[0].text;
+    const responseText = candidate.content.parts[0]?.text;
 
     if (!responseText) {
       throw new Error("Empty text in response from AI model.");
@@ -152,7 +149,7 @@ export async function POST(req: NextRequest) {
       careerPath,
       techStack,
       generatedAt: new Date().toISOString(),
-      model: modelId,
+      model: AI_MODELS.CAREER_PATH,
     };
 
     // Increment usage

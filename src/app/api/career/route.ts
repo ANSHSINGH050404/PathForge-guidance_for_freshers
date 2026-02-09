@@ -1,14 +1,14 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 import { careerRequestSchema, validateRequest } from "@/lib/validations";
-import { requireAuth, rateLimit } from "@/lib/middleware";
+import { rateLimit } from "@/lib/middleware";
 import { requireAuthOrFreeTrial, incrementUsage } from "@/lib/auth-middleware";
+import { AI_MODELS } from "@/lib/ai-config";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_API_KEY!,
 });
 
-const MODEL_NAME = "gemini-2.0-flash";
 const MAX_REQUESTS_PER_MINUTE = 10;
 
 export async function POST(req: NextRequest) {
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       "anonymous";
 
     // Rate limiting
-    const rateLimitResult = rateLimit(
+    const rateLimitResult = await rateLimit(
       `career:${clientIp}`,
       MAX_REQUESTS_PER_MINUTE,
       60000,
@@ -96,7 +96,7 @@ The JSON object should have the following structure:
 `;
 
     const response = await ai.models.generateContent({
-      model: MODEL_NAME,
+      model: AI_MODELS.CAREER_GUIDE,
       contents: prompt,
     });
 

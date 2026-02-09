@@ -45,16 +45,43 @@ export async function requireAuth(request: NextRequest) {
 }
 
 /**
- * Rate limiting helper (simple in-memory implementation)
- * For production, use Redis or similar
+ * Rate limiting helper (in-memory implementation with lazy cleanup)
+ * NOTE: For production with multiple instances, use Redis or Upstash
+ * This implementation uses lazy cleanup to avoid memory leaks
  */
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
-export function rateLimit(
+/**
+ * Lazy cleanup: Remove expired entries when checking rate limits
+ * This avoids the memory leak from setInterval
+ */
+function cleanupExpiredEntries(): void {
+  const now = Date.now();
+  const keysToDelete: string[] = [];
+
+  for (const [key, record] of rateLimitMap.entries()) {
+    if (now > record.resetTime) {
+      keysToDelete.push(key);
+    }
+  }
+
+  keysToDelete.forEach((key) => rateLimitMap.delete(key));
+}
+
+/**
+ * Rate limit check - now properly async for future Redis integration
+ */
+export async function rateLimit(
   identifier: string,
   maxRequests: number = 10,
   windowMs: number = 60000, // 1 minute
-): { allowed: boolean; remaining: number; resetTime: number } {
+): Promise<{ allowed: boolean; remaining: number; resetTime: number }> {
+  // Perform lazy cleanup on each call (minimal performance impact)
+  if (rateLimitMap.size > 100) {
+    // Only cleanup if map is getting large
+    cleanupExpiredEntries();
+  }
+
   const now = Date.now();
   const record = rateLimitMap.get(identifier);
 
@@ -79,15 +106,3 @@ export function rateLimit(
     resetTime: record.resetTime,
   };
 }
-
-/**
- * Clean up old rate limit records periodically
- */
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, record] of rateLimitMap.entries()) {
-    if (now > record.resetTime) {
-      rateLimitMap.delete(key);
-    }
-  }
-}, 60000); // Clean up every minute

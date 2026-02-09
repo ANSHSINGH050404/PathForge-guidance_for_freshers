@@ -149,13 +149,13 @@ export default function CareerPathBuilder() {
 
   // Check authentication and usage on mount
   useEffect(() => {
-    // Check if user is logged in via API
     const checkAuth = async () => {
       try {
         const { data } = await axios.get("/api/auth/status");
         setIsAuthenticated(data.isAuthenticated);
+        // Set usage count from server response (database is source of truth)
         if (!data.isAuthenticated && data.usage) {
-          setUsageCount(data.usage.careerPath);
+          setUsageCount(data.usage.careerPath || 0);
         }
       } catch (error) {
         console.error("Failed to check auth status:", error);
@@ -163,17 +163,7 @@ export default function CareerPathBuilder() {
       }
     };
 
-    // Get usage count from localStorage
-    const getUsageCount = () => {
-      const count = parseInt(
-        localStorage.getItem("careerPathUsageCount") || "0",
-        10,
-      );
-      setUsageCount(count);
-    };
-
     checkAuth();
-    getUsageCount();
   }, []);
 
   const currentPathOptions = selectedPath
@@ -248,16 +238,29 @@ export default function CareerPathBuilder() {
         },
       );
 
-      console.log("Received API response:", data);
-      console.log("Response keys:", Object.keys(data));
-      setRoadmap(data);
-      console.log("Roadmap state set successfully");
+      if (process.env.NODE_ENV === "development") {
+        console.log("Received API response:", data);
+        console.log("Response keys:", Object.keys(data));
+      }
 
-      // Increment usage count if not authenticated
+      setRoadmap(data);
+
+      if (process.env.NODE_ENV === "development") {
+        console.log("Roadmap state set successfully");
+      }
+
+      // Update usage count from server response if available
+      // The server increments usage, so we refresh the count
       if (!isAuthenticated) {
-        const newCount = usageCount + 1;
-        setUsageCount(newCount);
-        localStorage.setItem("careerPathUsageCount", newCount.toString());
+        // Refresh auth status to get updated usage count
+        try {
+          const { data: statusData } = await axios.get("/api/auth/status");
+          if (statusData.usage) {
+            setUsageCount(statusData.usage.careerPath || 0);
+          }
+        } catch (error) {
+          console.error("Failed to refresh usage count:", error);
+        }
       }
     } catch (error: any) {
       console.error("Error generating roadmap:", error);

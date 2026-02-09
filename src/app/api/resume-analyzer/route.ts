@@ -1,14 +1,14 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 import { resumeAnalyzerSchema, validateRequest } from "@/lib/validations";
-import { requireAuth, rateLimit } from "@/lib/middleware";
+import { rateLimit } from "@/lib/middleware";
 import { requireAuthOrFreeTrial, incrementUsage } from "@/lib/auth-middleware";
+import { AI_MODELS } from "@/lib/ai-config";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_API_KEY!,
 });
 
-const MODEL_NAME = "gemini-1.5-flash";
 const MAX_REQUESTS_PER_MINUTE = 5; // Lower limit for resume analysis (more resource intensive)
 
 export async function POST(req: NextRequest) {
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       "anonymous";
 
     // Rate limiting
-    const rateLimitResult = rateLimit(
+    const rateLimitResult = await rateLimit(
       `resume:${clientIp}`,
       MAX_REQUESTS_PER_MINUTE,
       60000,
@@ -58,8 +58,10 @@ export async function POST(req: NextRequest) {
 
     const { pdfBase64 } = validation.data;
 
-    // Debug logging
-    console.log(`Analyzing resume. PDF Size: ${pdfBase64.length} bytes`);
+    // Debug logging (development only)
+    if (process.env.NODE_ENV === "development") {
+      console.log(`Analyzing resume. PDF Size: ${pdfBase64.length} bytes`);
+    }
 
     const prompt = `
 You are an expert ATS (Applicant Tracking System) analyzer. Analyze the PDF resume attached to this request.
@@ -103,7 +105,7 @@ Focus on:
 `;
 
     const response = await ai.models.generateContent({
-      model: MODEL_NAME,
+      model: AI_MODELS.RESUME_ANALYZER,
       contents: [
         {
           role: "user",
@@ -130,7 +132,9 @@ Focus on:
         .replace(/```/g, "")
         .trim();
 
-      console.log("AI Raw Response (truncated):", rawText?.substring(0, 200));
+      if (process.env.NODE_ENV === "development") {
+        console.log("AI Raw Response (truncated):", rawText?.substring(0, 200));
+      }
 
       if (!rawText) {
         throw new Error("AI did not return valid JSON");
