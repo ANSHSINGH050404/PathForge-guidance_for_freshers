@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { Menu, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSession, signOut } from "@/lib/auth-client";
-
+import Image from "next/image";
 const navLinks = [
   { href: "#analyzer", label: "Resume Analysis" },
   { href: "#roadmap", label: "Career Roadmap" },
@@ -38,7 +38,13 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
+          <Image
+           src="/logo.jpeg" 
+              alt="PathForge Logo" 
+              width={32} 
+              height={32} 
+              className="rounded-lg shadow-lg shadow-blue-500/20" 
+              />
           <Link href="/" className="flex items-center">
             <span className="font-mono text-xl font-bold text-white tracking-tight">
               PathForge
