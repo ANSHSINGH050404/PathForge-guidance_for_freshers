@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import Spotlight from "@/components/Spotlight";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,7 +45,7 @@ export default function RootLayout({
         <Spotlight />
 
         {/* Main Content */}
-        <div className="relative z-10">{children}</div>
+        <div className="relative z-10">{children}<Analytics /></div>
 
         <Toaster
           position="top-center"
