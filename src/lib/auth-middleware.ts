@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/index";
 import { guestUsage } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { getSession } from "@/lib/middleware";
 
 // Free trial configuration
 export const FREE_TRIAL_LIMITS = {
@@ -37,11 +38,14 @@ function isValidIP(ip: string): boolean {
 
 /**
  * Check if user is authenticated
+ * Note: This performs a quick cookie check. For robust verification, use getSession()
  */
 export function isAuthenticated(req: NextRequest): boolean {
   // Check for auth token in cookies
   // The system uses 'better-auth.session_token' for session management
-  const sessionToken = req.cookies.get("better-auth.session_token")?.value;
+  const sessionToken =
+    req.cookies.get("better-auth.session_token")?.value ||
+    req.cookies.get("__Secure-better-auth.session_token")?.value;
 
   // Check for auth token in Authorization header (if applicable)
   const authHeader = req.headers.get("authorization");
@@ -85,9 +89,18 @@ export async function checkFreeTrial(
   req: NextRequest,
   endpoint: EndpointType,
 ): Promise<{ allowed: boolean; response?: NextResponse }> {
-  // If user is authenticated, allow unlimited access
-  if (isAuthenticated(req)) {
+  // Try to get session first (most robust check)
+  const session = await getSession(req);
+  if (session) {
     return { allowed: true };
+  }
+
+  // Fallback to quick cookie check if getSession fails but cookie exists (unlikely but safe)
+  if (isAuthenticated(req)) {
+    // Ideally getSession should have worked if isAuthenticated returns true.
+    // But if getSession needs DB and DB is down, maybe fail safe?
+    // Actually, if getSession returns null, it means no valid session found.
+    // So we proceed to guest check.
   }
 
   const ip = getGuestIdentifier(req);
@@ -167,7 +180,9 @@ export async function incrementUsage(
   endpoint: EndpointType,
   retries: number = 2,
 ): Promise<void> {
-  if (isAuthenticated(req)) return;
+  // Check session first
+  const session = await getSession(req);
+  if (session) return;
 
   const ip = getGuestIdentifier(req);
 

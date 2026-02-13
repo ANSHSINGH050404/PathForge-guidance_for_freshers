@@ -7,9 +7,9 @@ import { auth } from "./auth";
  */
 export async function getSession(request: NextRequest) {
   try {
-    const sessionToken = request.cookies.get(
-      "better-auth.session_token",
-    )?.value;
+    const sessionToken =
+      request.cookies.get("better-auth.session_token")?.value ||
+      request.cookies.get("__Secure-better-auth.session_token")?.value;
 
     if (!sessionToken) {
       return null;
