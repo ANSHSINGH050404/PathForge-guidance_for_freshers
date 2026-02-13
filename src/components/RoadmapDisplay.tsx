@@ -16,6 +16,7 @@ import {
   Lightbulb,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ShareButtons from "./ShareButtons";
 
 interface RoadmapDisplayProps {
   roadmap: any;
@@ -157,6 +158,7 @@ export default function RoadmapDisplay({
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.7 }}
+              className="flex flex-col items-end gap-4"
             >
               <Button
                 onClick={onReset}
@@ -165,6 +167,12 @@ export default function RoadmapDisplay({
               >
                 Start Over
               </Button>
+
+              <ShareButtons
+                title="My Custom Career Roadmap"
+                text={`I just generated my custom learning roadmap for becoming a ${roadmap.careerRoadmap?.entryLevel?.title || "Tech Professional"}! 🚀 Check out my path to mastery.`}
+                url={typeof window !== "undefined" ? window.location.href : ""}
+              />
             </motion.div>
           </div>
         </div>
