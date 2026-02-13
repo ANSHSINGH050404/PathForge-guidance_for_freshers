@@ -22,10 +22,10 @@ const footerLinks = {
 };
 
 const socialLinks = [
-  { icon: Github, href: "https://github.com", label: "GitHub" },
-  { icon: Twitter, href: "https://twitter.com", label: "Twitter" },
-  { icon: Linkedin, href: "https://linkedin.com", label: "LinkedIn" },
-  { icon: Mail, href: "mailto:hello@pathforge.ai", label: "Email" },
+  { icon: Github, href: "https://github.com/ANSHSINGH050404", label: "GitHub" },
+  { icon: Twitter, href: "https://x.com/AnshSin18258375", label: "Twitter" },
+  { icon: Linkedin, href: "https://www.linkedin.com/in/ansh-singh-b56612241", label: "LinkedIn" },
+  { icon: Mail, href: "mailto:anshsinghapa@gmail.com", label: "Email" },
 ];
 
 export default function Footer() {
